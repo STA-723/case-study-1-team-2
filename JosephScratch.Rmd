@@ -1,0 +1,68 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+library(tidyverse)
+library(mice)
+library(nnet)
+library(corrplot)
+library(quantreg)
+library(MASS)
+set.seed(43)
+
+Long <- readRDS("C:/Users/joey6/Documents/DukeStats/STA723/Case-Study-1/Longnecker.rds")
+Long <- Long %>% mutate(albuminTested = ifelse(is.na(albumin), 0, 1)) %>% filter(gestational_age <= 44)
+Long = Long %>% mutate(termCat = cut(gestational_age, c(breaks = c(0, 32, 37,41, 50))), center = as.character(center),
+                       pcb = pcb_028 + pcb_052 + pcb_074 + pcb_105 + pcb_118 + pcb_153 + pcb_170 +
+                            pcb_138 + pcb_180 + pcb_194 + pcb_203,
+                       ed_norm = qnorm(score_education / 100),
+                       inc_norm = qnorm(score_education / 100),
+                       occ_norm = qnorm(score_occupation / 100),
+                       dde_cut = cut(dde, breaks = 5),
+                       pcb_cut = cut(pcb, breaks = 5),
+                       gestord = factor(termCat, ordered = TRUE)
+                       )
+impLong = parlmice(data = Long %>% select(-albumin), m = 20, maxit = 20)
+impLongdf = complete(impLong, "long")
+
+
+impMod = with(impLong, glm(gestational_age ~ center + dde + pcb + triglycerides +score_education + 
+                            score_income + score_occupation + maternal_age + smoking_status + cholesterol + albuminTested, family = gaussian()))
+
+impModbin = with(impLong, multinom(termCat ~ center + dde + pcb + triglycerides +score_education + 
+                            score_income + score_occupation + maternal_age + smoking_status + cholesterol + albuminTested))
+
+summary(pool(impModbin))
+
+
+qmod = with(impLong,rq(gestational_age ~ center + dde + pcb + triglycerides +score_education + 
+                            score_income + score_occupation + maternal_age + smoking_status + cholesterol + albuminTested, tau = .3))
+
+qmod = rq(gestational_age ~ center + log(dde)*log(triglycerides) + log(pcb)*log(triglycerides) + maternal_age + smoking_status + cholesterol + albuminTested, tau = 1:9/10, data = Long)
+
+summary(pool(qmod))
+plot(summary(qmod), parm = c("log(dde)", "log(pcb)"))
+
+summary(lm(gestational_age ~ center + dde_cut + pcb_cut + triglycerides +maternal_age + smoking_status + cholesterol + albuminTested, Long))
+
+
+##
+Long_Score_NA_rm = Long
+modordscore = polr(gestord ~ log(dde) + log(pcb) + score_education + score_occupation + score_education + log(triglycerides) + maternal_age + smoking_status + cholesterol + albuminTested, data = Long)
+modordcenter = polr(gestord~ center*log(dde) + center*log(pcb) + log(triglycerides) + maternal_age + smoking_status + cholesterol + albuminTested, data = Long)
+modord = polr(gestord~ center+log(dde) + log(pcb)+log(triglycerides) + I(pcb/triglycerides) + maternal_age + smoking_status + cholesterol + albuminTested, data = Long)
+summary(modord)
+anova(modord, modordcenter)
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
