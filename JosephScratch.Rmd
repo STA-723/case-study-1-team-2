@@ -24,10 +24,10 @@ Long = Long %>% mutate(termCat = cut(gestational_age, c(breaks = c(0, 32, 37,41,
                        ed_norm = qnorm(score_education / 100),
                        inc_norm = qnorm(score_education / 100),
                        occ_norm = qnorm(score_occupation / 100),
-                       dde_cut = cut(dde, breaks = 5),
-                       pcb_cut = cut(pcb, breaks = 5),
+                       dde.cut = cut(dde, breaks = 5),
+                       pcb.cut = cut(pcb, breaks = 5),
                        gestord = factor(termCat, ordered = TRUE)
-                       )
+                       ) %>% filter(!is.na(pcb))
 impLong = parlmice(data = Long %>% select(-albumin), m = 20, maxit = 20)
 impLongdf = complete(impLong, "long")
 
@@ -53,12 +53,34 @@ summary(lm(gestational_age ~ center + dde_cut + pcb_cut + triglycerides +materna
 
 
 ##
-Long_Score_NA_rm = Long
-modordscore = polr(gestord ~ log(dde) + log(pcb) + score_education + score_occupation + score_education + log(triglycerides) + maternal_age + smoking_status + cholesterol + albuminTested, data = Long)
+
+Long_Score_NA_rm = Long %>% filter(!is.na(score_education + score_occupation + score_income))
+modordscore = polr(gestord ~ center + log(dde) + log(pcb) + score_education + score_occupation + score_education + log(triglycerides) + maternal_age + smoking_status + cholesterol + albuminTested, data = Long_Score_NA_rm)
+modordscorecomp = polr(gestord~ center+log(dde) + log(pcb)+log(triglycerides) + maternal_age + smoking_status + cholesterol + albuminTested, data = Long_Score_NA_rm)
+anova(modordscore, modordscorecomp)
+
 modordcenter = polr(gestord~ center*log(dde) + center*log(pcb) + log(triglycerides) + maternal_age + smoking_status + cholesterol + albuminTested, data = Long)
-modord = polr(gestord~ center+log(dde) + log(pcb)+log(triglycerides) + I(pcb/triglycerides) + maternal_age + smoking_status + cholesterol + albuminTested, data = Long)
+modord = polr(gestord~ center+log(dde) + log(pcb)+log(triglycerides)  + maternal_age + smoking_status + cholesterol + albuminTested, data = Long)
 summary(modord)
 anova(modord, modordcenter)
+
+### PCA ###
+
+pcbmat = as.matrix(Long %>% dplyr::select(colnames(Long)[grepl("pcb_", colnames(Long))]))
+pcb.pr = prcomp(pcbmat, center = F, scale = F)
+
+Long = Long %>% mutate(PCB1 = pcb.pr$x[,1], PCB2 = pcb.pr$x[,2])
+
+Long.PCA.1.2 = polr(gestord~ center + log(dde) + PCB1 + PCB2 + log(triglycerides)  + maternal_age + smoking_status + cholesterol + albuminTested, data = Long)
+
+Long.PCA.1 = polr(gestord~ center + log(dde) + PCB1 + log(triglycerides)  + maternal_age + smoking_status + cholesterol + albuminTested, data = Long)
+
+
+Long.PCA.logged = polr(gestord~ center + log(dde) + log(-1*PCB1) + log(triglycerides)  + maternal_age + smoking_status + cholesterol + albuminTested, data = Long)
+
+
+anova(Long.PCA.1, Long.PCA.1.2)
+
 ```
 
 Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.

@@ -1,0 +1,30 @@
+Case Study 1
+========================================================
+author: Emily Gentles,  Phuc Nguyen,  Joseph Lawson
+date: 1/21/2020
+autosize: true
+
+Case Discussion
+========================================================
+
+For more details on authoring R presentations please visit <https://support.rstudio.com/hc/en-us/articles/200486468>.
+
+- Bullet 1
+- Bullet 2
+- Bullet 3
+
+Exploratory Data Analysis
+========================================================
+
+
+
+Analysis
+========================================================
+
+
+
+Results
+========================================================
+
+Discussion
+========================================================
