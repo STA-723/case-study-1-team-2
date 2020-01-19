@@ -7,11 +7,12 @@ autosize: true
 Case Discussion
 ========================================================
 
-For more details on authoring R presentations please visit <https://support.rstudio.com/hc/en-us/articles/200486468>.
+- Data obtained from a subset of women enrolled in the CPP during pregnancy
+- Data issues: uncertainty, inflation, and missingness
 
-- Bullet 1
-- Bullet 2
-- Bullet 3
+**Goal**: Assess how exposure to DDE and PCBs relates to the risk of premature delivery
+
+Graph?
 
 Exploratory Data Analysis
 ========================================================
