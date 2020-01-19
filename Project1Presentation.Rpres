@@ -23,8 +23,104 @@ Exploratory Data Analysis
 Analysis
 ========================================================
 
-```{r, echo=FALSE}
+- Keep obs with Gest. Age 44 or less
+- Categorize Gest. Age to assess risks of pre-term births of varying severity
+- Impute score data with MICE
+- Remove obs with missing PCE, DDE
 
+***
+
+
+```{r, echo=FALSE, eval = FALSE}
+library(tidyverse)
+library(mice)
+library(nnet)
+library(corrplot)
+library(quantreg)
+library(MASS)
+set.seed(43)
+
+Long <- readRDS("Longnecker.rds")
+Long <- Long %>% mutate(albuminTested = ifelse(is.na(albumin), 0, 1)) %>% filter(gestational_age <= 44)
+Long = Long %>% mutate(termCat = cut(gestational_age, c(breaks = c(0, 32, 37 ,45))), center = as.character(center),
+                       pcb = pcb_028 + pcb_052 + pcb_074 + pcb_105 + pcb_118 + pcb_153 + pcb_170 +
+                            pcb_138 + pcb_180 + pcb_194 + pcb_203,
+                       ed_norm = qnorm(score_education / 100),
+                       inc_norm = qnorm(score_education / 100),
+                       occ_norm = qnorm(score_occupation / 100),
+                       dde.cut = cut(dde, breaks = 5),
+                       pcb.cut = cut(pcb, breaks = 5),
+                       gestord = factor(termCat, ordered = TRUE)
+                       ) %>% filter(!is.na(pcb))
+
+
+# ADD PRINCIPLE COMPONENTs
+pcbmat = as.matrix(Long %>% dplyr::select(colnames(Long)[grepl("pcb_", colnames(Long))]))
+pcb.pr = prcomp(pcbmat, center = T, scale = T)
+
+Long = Long %>% mutate(PCB1 = pcb.pr$x[,1], PCB2 = pcb.pr$x[,2])
+
+
+# IMPUTE MISSING DATA
+impLong = parlmice(data = Long %>% dplyr::select(-albumin), m = 5, maxit = 20)
+impLongdf = complete(impLong, "long")
+
+
+impMod = with(impLong, glm(gestational_age ~ center + dde + pcb + triglycerides +score_education + 
+                            score_income + score_occupation + maternal_age + smoking_status + cholesterol + albuminTested, family = gaussian()))
+
+impModbin = with(impLong, multinom(termCat ~ center + dde + pcb + triglycerides +score_education + 
+                            score_income + score_occupation + maternal_age + smoking_status + cholesterol + albuminTested))
+
+summary(pool(impModbin))
+
+
+qmod = with(impLong,rq(gestational_age ~ center + dde + pcb + triglycerides +score_education + 
+                            score_income + score_occupation + maternal_age + smoking_status + cholesterol + albuminTested, tau = .3))
+
+qmod = rq(gestational_age ~ center + log(dde)*log(triglycerides) + log(pcb)*log(triglycerides) + maternal_age + smoking_status + cholesterol + albuminTested, tau = 1:9/10, data = Long)
+
+summary(pool(qmod))
+plot(summary(qmod), parm = c("log(dde)", "log(pcb)"))
+
+summary(lm(gestational_age ~ center + dde_cut + pcb_cut + triglycerides +maternal_age + smoking_status + cholesterol + albuminTested, Long))
+
+
+##
+
+Long_Score_NA_rm = Long %>% filter(!is.na(score_education + score_occupation + score_income))
+modordscore = polr(gestord ~ center + log(dde) + log(pcb) + score_education + score_occupation + score_education + log(triglycerides) + maternal_age + smoking_status + cholesterol + albuminTested, data = Long_Score_NA_rm)
+modordscorecomp = polr(gestord~ center+log(dde) + log(pcb)+log(triglycerides) + maternal_age + smoking_status + cholesterol + albuminTested, data = Long_Score_NA_rm)
+anova(modordscore, modordscorecomp)
+
+modordcenter = polr(gestord~ center*log(dde) + center*log(pcb) + log(triglycerides) + maternal_age + smoking_status + cholesterol + albuminTested, data = Long)
+modord = polr(gestord~ center+log(dde) + log(pcb)+log(triglycerides)  + maternal_age + smoking_status + cholesterol + albuminTested, data = Long)
+summary(modord)
+anova(modord, modordcenter)
+
+### PCA Analysis ###
+
+pcbmat = as.matrix(Long %>% dplyr::select(colnames(Long)[grepl("pcb_", colnames(Long))]))
+pcb.pr = prcomp(pcbmat, center = T, scale = T)
+
+Long = Long %>% mutate(PCB1 = pcb.pr$x[,1], PCB2 = pcb.pr$x[,2])
+
+Long.PCA.1.2 = polr(gestord~ center + log(dde) + PCB1 + PCB2 + log(triglycerides)  + maternal_age + smoking_status + cholesterol + albuminTested, data = Long)
+
+Long.PCA.1 = polr(gestord~ center + log(dde) + PCB1 + log(triglycerides)  + maternal_age + smoking_status + cholesterol + albuminTested, data = Long)
+
+
+Long.PCA.logged = polr(gestord~ center + log(dde) + log(-1*PCB1) + log(triglycerides)  + maternal_age + smoking_status + cholesterol + albuminTested, data = Long)
+
+
+anova(Long.PCA.1, Long.PCA.1.2)
+
+
+### MICE with ORDLOG
+
+impOrdLogMod = with(impLong, polr(gestord~ center + log(dde) + log(PCB1) + log(triglycerides)  + maternal_age + smoking_status + cholesterol + albuminTested))
+
+summary(pool(impOrdLogMod))
 ```
 
 Results

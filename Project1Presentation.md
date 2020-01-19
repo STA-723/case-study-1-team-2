@@ -21,6 +21,14 @@ Exploratory Data Analysis
 Analysis
 ========================================================
 
+- Keep obs with Gest. Age 44 or less
+- Categorize Gest. Age to assess risks of pre-term births of varying severity
+- Impute score data with MICE
+- Remove obs with missing PCE, DDE
+
+***
+
+
 
 
 Results
