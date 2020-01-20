@@ -323,20 +323,19 @@ Long %>%
 
 # Proportional Odds Assumption
 
-```{r}
+```{r, brant, warning=FALSE}
 library(brant)
-test_mod <- polr(gestational_cat ~ race +
-                 log_dde + 
-                 pcb_pca1 +
-                 has_albumin +
-                 maternal_age + 
-                 log_tri +
-                 cholesterol +
-                 smoking_status +
-                 center, 
-               data = longnecker,
-               Hess=TRUE)
-brant(test_mod)
+Long <- Long %>%
+  mutate(logDDE = log(dde), 
+         logTri = log(triglycerides), logChol = log(cholesterol))
+test_mod <- polr(gestord ~ 
+                   race +
+                   center + logDDE + logPCB1 + 
+                   logTri  + maternal_age + 
+                   smoking_status + logChol + albuminTested, 
+                 data = Long,
+                 Hess = T)
+brant(test_mod)[1]
 ```
 
 ----
