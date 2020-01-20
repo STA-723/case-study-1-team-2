@@ -8,6 +8,10 @@ date: "Jan 21, 2020"
 output: beamer_presentation
 ---
 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
 # Case Discussion
 
 - Data obtained from a subset of women enrolled in the CPP during pregnancy
@@ -32,7 +36,7 @@ Graph?
 - Remove obs with missing PCE, DDE
 
 
-```{r, echo=FALSE, eval = FALSE}
+```{r, echo=FALSE, eval = TRUE, warning = FALSE, message = FALSE}
 library(tidyverse)
 library(mice)
 library(nnet)
@@ -83,7 +87,7 @@ Long.Base.Mod = polr(gestord~ center + dde + PCB1 + triglycerides  + maternal_ag
 
 Base.Confint = confint(Long.Base.Mod)
 
-knitr::kable(Base.Confint)
+knitr::kable(Base.Confint, "latex")
 
 ### PCA Analysis ###
 
@@ -145,6 +149,7 @@ DDE.PCA.Inter.Anova = anova(Long.Base.Mod, Long.PCA.DDE.Inter.Mod)
 Long.Trig.Inter.Mod = polr(gestord~ center + dde*triglycerides + PCB1*triglycerides  + maternal_age + smoking_status + cholesterol + albuminTested, data = Long)
 
 Trig.Inter.Anov = anova(Long.Base.Mod, Long.Trig.Inter.Mod)
+
 
 
 ```
