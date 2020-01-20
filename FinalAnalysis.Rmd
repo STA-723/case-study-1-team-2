@@ -76,7 +76,6 @@ longnecker["log_tri"] <- log(longnecker$triglycerides)
 
 ```{r, viz-collinear, message=FALSE}
 ggpairs(longnecker %>% dplyr::select(gestational_cat, log_dde, pcb_pca1, log_tri, cholesterol, maternal_age))
-
 ```
 
 ```{r}
