@@ -31,6 +31,7 @@ Make sure to very clearly address the questions of interest!
 library(tidyverse)
 library(mice)
 library(MASS)
+library(GGally)
 ```
 
 ```{r, clean-data}
@@ -73,10 +74,32 @@ longnecker["log_dde"] <- log(longnecker$dde)
 longnecker["log_tri"] <- log(longnecker$triglycerides)
 ```
 
-```{r}
-
+```{r, viz-collinear, message=FALSE}
+ggpairs(longnecker %>% dplyr::select(gestational_cat, log_dde, pcb_pca1, log_tri, cholesterol, maternal_age))
 ```
 
+```{r}
+ggplot(longnecker, aes(x = gestational_age)) + geom_histogram(bins = 15)
+ggplot(longnecker, aes(x = gestational_cat)) + geom_bar()
+ggplot(longnecker, aes(fill = race, x = gestational_cat)) + geom_bar()
+ggplot(longnecker, aes(x = dde)) + geom_histogram()
+ggplot(longnecker, aes(y = dde, x = gestational_cat)) + geom_boxplot()
+longnecker %>%
+  dplyr::select(pcb_170, pcb_138, pcb_203) %>%
+  gather(key = "var", value = "val") %>%
+  ggplot(aes(x = val)) + geom_histogram(bins=30) + facet_wrap(~var)
+ggplot(longnecker, aes(x = pcb_pca1)) + geom_histogram()
+ggplot(longnecker, aes(y = pcb_pca1, x = gestational_cat)) + geom_boxplot()
+ggplot(longnecker, aes(y = triglycerides, x = gestational_cat)) + geom_boxplot()
+ggplot(longnecker, aes(y = cholesterol, x = gestational_cat)) + geom_boxplot()
+ggplot(longnecker, aes(fill = as.factor(smoking_status), x = gestational_cat)) + geom_bar()
+ggplot(longnecker, aes(fill = gestational_cat, x = center)) + geom_bar()
+longnecker %>%
+  dplyr::select(contains("score"), gestational_cat) %>%
+  gather(key = "variable", value = "value", - gestational_cat) %>%
+  ggplot(aes(colour = gestational_cat, y = value, x = variable)) + geom_boxplot()
+ggplot(longnecker, aes(x = gestational_cat, y = maternal_age)) + geom_boxplot()
+```
 
 ### Ordered logistic regression
 
@@ -103,17 +126,16 @@ predictors <- c("log_dde",
                  "pcb_pca1",
                  "log_tri",
                  "cholesterol",
-                 "severe_premature", "premature", "normal","late"
+                 "severe_premature", "premature", "normal"
                 )
 longnecker %>%
   mutate(severe_premature = log(probabilities[, 1]/(1-probabilities[, 1])),
          premature = log(probabilities[, 2]/(1-probabilities[, 2])),
-         normal = log(probabilities[, 3]/(1-probabilities[, 3])),
-         late = log(probabilities[, 4]/(1-probabilities[, 4]))
+         normal = log(probabilities[, 3]/(1-probabilities[, 3]))
          ) %>%
   dplyr::select(predictors) %>%
   gather(key = "predictors", value = "predictor.value", 
-         -severe_premature, -premature, -normal, -late) %>%
+         -severe_premature, -premature, -normal) %>%
   gather(key = "categories", value = "logit.value", -predictors, -predictor.value) %>%
   ggplot(aes(logit.value, predictor.value))+
   geom_point(size = 0.5, alpha = 0.5) +
@@ -139,7 +161,6 @@ test_mod <- polr(gestational_cat ~ race +
                Hess=TRUE)
 brant(test_mod)
 ```
-
 
 ### Sensitivity Analysis
 
