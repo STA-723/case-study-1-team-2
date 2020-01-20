@@ -12,7 +12,6 @@ output: beamer_presentation
 knitr::opts_chunk$set(echo = FALSE)
 ```
 
-=======
 ```{r, echo=FALSE, eval = TRUE, warning = FALSE, message = FALSE}
 library(tidyverse)
 library(mice)
@@ -20,7 +19,6 @@ library(nnet)
 library(corrplot)
 library(quantreg)
 library(MASS)
-library(effects)
 library(knitr)
 library(tigerstats)
 library(ggplot2)
@@ -191,7 +189,8 @@ Long$logdde = log(Long$dde)
 - Data obtained from a subset of women enrolled in the CPP during pregnancy
 - Data issues: uncertainty, inflation, and missingness
 
-**Goal**: Assess how exposure to DDE and PCBs relates to the risk of premature delivery
+**Goal**: Assess how exposure to DDE and PCBs relates to the risk of premature delivery and the relative severity thereof
+
 
 ```{r gest.plot, echo = FALSE}
 library(ggplot2)
@@ -200,7 +199,15 @@ ggplot(data = longnecker_b, aes(x = gestational_age)) + geom_histogram(binwidth 
 
 # Exploratory Data Analysis
 
+![corr-plot](collinear.jpg) 
 ----
+```{r}
+Long %>%
+  dplyr::select(pcb_170, pcb_138, pcb_203) %>%
+  gather(key = "var", value = "val") %>%
+  ggplot(aes(x = val)) + geom_histogram(bins=30) + facet_wrap(~var)
+```
+
 
 ```{r, echo = FALSE}
 barplot(height = MatAgeGestTable[,1] / 100, xlab = "Age Bucket", ylab = "Severely Preterm Percentage",
@@ -247,10 +254,11 @@ barplot(height = MatAgeGestTable[,1] / 100, xlab = "Age Bucket", ylab = "Severel
 # Results
 
 - (log) DDE and PCB both significantly associated with preterm delivery likelihood even when adjusting for other factors
+- Interpretation that 1% increase in DDE/PCB approximately associated with a `r round(final.coef["log(dde)"],2)`% change and a `r round(final.coef["logPCB1"],2)`% change, respectively in the log odds of of a gestational age occurrence below a given ordinal threshold.
+  + Note for interpretability that the PCB coefficient is relative to the (standardized/centered) first principle component of the pcb_* measurements
 
-
-```{r, fig.margin = TRUE}
-  knitr::kable(chem.effect.summary)
+```{r}
+  knitr::kable(round(chem.effect.summary,3))
 ```
 
 ----
@@ -273,7 +281,14 @@ Long %>%
   geom_smooth(method = "loess") + 
   theme_bw() + 
   facet_grid(cols = vars(categories), rows = vars(predictors), scales = "free") +
-  ggtitle("Fitted Probabilities vs DDE (ug/dL)/PCB (ng/dL)  (log scale)")
+  ggtitle("Fitted Probabilities vs DDE (ug/dL)/PCB (princ comp.)  (log scale)")
 ```
 
-# Discussion
+----
+
+- Control Variables of Significance:
+  + Center
+  + Triglycerides (g/dL)
+  + Cholesterol (g/dL)
+  + Maternal Age (years)
+  + Albumin (Testing Indicator)
