@@ -19,7 +19,6 @@ library(nnet)
 library(corrplot)
 library(quantreg)
 library(MASS)
-library(effects)
 library(knitr)
 library(tigerstats)
 set.seed(43)
@@ -194,7 +193,15 @@ Graph?
 
 # Exploratory Data Analysis
 
+![corr-plot](collinear.jpg) 
 ----
+```{r}
+Long %>%
+  dplyr::select(pcb_170, pcb_138, pcb_203) %>%
+  gather(key = "var", value = "val") %>%
+  ggplot(aes(x = val)) + geom_histogram(bins=30) + facet_wrap(~var)
+```
+
 
 ```{r, echo = FALSE}
 barplot(height = MatAgeGestTable[,1] / 100, xlab = "Age Bucket", ylab = "Severely Preterm Percentage",

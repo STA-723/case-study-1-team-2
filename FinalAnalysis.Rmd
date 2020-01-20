@@ -83,7 +83,6 @@ ggplot(longnecker, aes(x = gestational_age)) + geom_histogram(bins = 15)
 ggplot(longnecker, aes(x = gestational_cat)) + geom_bar()
 ggplot(longnecker, aes(fill = race, x = gestational_cat)) + geom_bar()
 ggplot(longnecker, aes(x = dde)) + geom_histogram()
-ggplot(longnecker, aes(y = dde, x = gestational_cat)) + geom_boxplot()
 longnecker %>%
   dplyr::select(pcb_170, pcb_138, pcb_203) %>%
   gather(key = "var", value = "val") %>%
@@ -99,6 +98,9 @@ longnecker %>%
   gather(key = "variable", value = "value", - gestational_cat) %>%
   ggplot(aes(colour = gestational_cat, y = value, x = variable)) + geom_boxplot()
 ggplot(longnecker, aes(x = gestational_cat, y = maternal_age)) + geom_boxplot()
+longnecker %>%
+  mutate(has_albumin = as.factor(has_albumin)) %>%
+  ggplot(aes(y = gestational_age, x = has_albumin)) + geom_boxplot()
 ```
 
 ### Ordered logistic regression
