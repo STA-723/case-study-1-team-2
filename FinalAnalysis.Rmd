@@ -82,7 +82,7 @@ longnecker["log_tri"] <- log(longnecker$triglycerides)
 
 ```{r, ord}
 ord_mod <- polr(gestational_cat ~ race +
-                 log_dde + 
+                 dde + 
                  pcb_pca1 +
                  has_albumin +
                  poly(maternal_age, 2) + 
@@ -102,17 +102,16 @@ predictors <- c("log_dde",
                  "pcb_pca1",
                  "log_tri",
                  "cholesterol",
-                 "severe_premature", "premature", "normal","late"
+                 "severe_premature", "premature", "normal"
                 )
 longnecker %>%
   mutate(severe_premature = log(probabilities[, 1]/(1-probabilities[, 1])),
          premature = log(probabilities[, 2]/(1-probabilities[, 2])),
-         normal = log(probabilities[, 3]/(1-probabilities[, 3])),
-         late = log(probabilities[, 4]/(1-probabilities[, 4]))
+         normal = log(probabilities[, 3]/(1-probabilities[, 3]))
          ) %>%
   dplyr::select(predictors) %>%
   gather(key = "predictors", value = "predictor.value", 
-         -severe_premature, -premature, -normal, -late) %>%
+         -severe_premature, -premature, -normal) %>%
   gather(key = "categories", value = "logit.value", -predictors, -predictor.value) %>%
   ggplot(aes(logit.value, predictor.value))+
   geom_point(size = 0.5, alpha = 0.5) +
@@ -121,9 +120,9 @@ longnecker %>%
   facet_grid(cols = vars(categories), rows = vars(predictors), scales = "free")
 ```
 
-
 ### Sensitivity Analysis
 
+<<<<<<< HEAD
 ```{r}
 pred <- predict(ord_mod, type = "probs")
 predictors <- c("log_dde", 
@@ -170,6 +169,27 @@ plot_summs(ord_mod)
 ```
 
 
+=======
+```{r, cache=TRUE}
+y <- longnecker$gestational_cat
+n <- 200
+y_hat <- matrix(NA, nrow = length(y), ncol = n)
+for (i in 1:n) {
+  y_hat[, i] <- apply(probabilities, 1, function(x) {which(rmultinom(1, 1, x) == 1)})
+}
+count_severe <- apply(y_hat, 2, function(x) {sum(x == 1)})
+count_mild <- apply(y_hat, 2, function(x) {sum(x == 2)})
+count_normal <- apply(y_hat, 2, function(x) {sum(x == 3)})
+sens_data <- data.frame(severe = count_severe, mild = count_mild, normal = count_normal) %>%
+  gather(key = "categories", value = "count")
+ggplot(sens_data, aes(x = count, fill = categories)) + 
+  geom_histogram(bins = 200) +
+  geom_vline(xintercept = 69, color = "red", size = 0.5) +
+  geom_vline(xintercept = 453, color = "red", size = 0.5) +
+  geom_vline(xintercept = 1789, color = "red", size = 0.5)
+```
+
+>>>>>>> d06e3acca5b9a2f9558f4ffba34549eeb7b22de2
 # Section 4: Discussion - comment on advantages and disadvantages of the approach taken and
 briefly discuss other approaches you could have taken instead.
 
