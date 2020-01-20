@@ -257,7 +257,7 @@ barplot(height = MatAgeGestTable[,1] / 100, xlab = "Age Bucket", ylab = "Severel
 # Results
 
 - (log) DDE and PCB both significantly associated with preterm delivery likelihood even when adjusting for other factors
-- Interpretation that 1% increase in DDE/PCB approximately associated with a `r round(final.coef["log(dde)"],2)`% change and a `r round(final.coef["logPCB1"],2)`% change, respectively in the log odds of of a gestational age occurrence below a given ordinal threshold.
+- Interpretation that 1% increase in DDE is approximately associated with a `r round(final.coef["log(dde)"],2)`% change, and a unit increase in logPCB1 with a `r round(final.coef["logPCB1"],2)` change, in the log odds of of a gestational age occurrence below a given ordinal threshold.
   + Note for interpretability that the PCB coefficient is relative to the (standardized/centered) first principle component of the pcb_* measurements
 
 ```{r}
@@ -295,3 +295,5 @@ Long %>%
   + Cholesterol (g/dL)
   + Maternal Age (years)
   + Albumin (Testing Indicator)
+
+- 
