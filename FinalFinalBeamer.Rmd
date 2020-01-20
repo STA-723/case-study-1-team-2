@@ -201,6 +201,7 @@ ggplot(data = longnecker_b, aes(x = gestational_age)) + geom_histogram(binwidth 
 
 ![corr-plot](collinear.jpg) 
 ----
+
 ```{r}
 Long %>%
   dplyr::select(pcb_170, pcb_138, pcb_203) %>%
@@ -208,6 +209,27 @@ Long %>%
   ggplot(aes(x = val)) + geom_histogram(bins=30) + facet_wrap(~var)
 ```
 
+----
+
+```{r}
+Long %>%
+  mutate(has_albumin = as.factor(albuminTested)) %>%
+  ggplot(aes(y = gestational_age, x = has_albumin)) + geom_boxplot()
+```
+
+----
+
+```{r}
+ggplot(longnecker, aes(fill = gestational_cat, x = center)) + geom_bar()
+```
+
+----
+
+```{r}
+ggplot(longnecker, aes(fill = race, x = gestational_cat)) + geom_bar()
+```
+
+----
 
 ```{r, echo = FALSE}
 barplot(height = MatAgeGestTable[,1] / 100, xlab = "Age Bucket", ylab = "Severely Preterm Percentage",
@@ -249,6 +271,12 @@ barplot(height = MatAgeGestTable[,1] / 100, xlab = "Age Bucket", ylab = "Severel
 
 ----
 
+# Final Model
+
+
+
+----
+
 
 
 # Results
@@ -286,9 +314,43 @@ Long %>%
 
 ----
 
+# Proportional Odds Assumption
+
+```{r}
+library(brant)
+test_mod <- polr(gestational_cat ~ race +
+                 log_dde + 
+                 pcb_pca1 +
+                 has_albumin +
+                 maternal_age + 
+                 log_tri +
+                 cholesterol +
+                 smoking_status +
+                 center, 
+               data = longnecker,
+               Hess=TRUE)
+brant(test_mod)
+```
+
+----
+
 - Control Variables of Significance:
   + Center
   + Triglycerides (g/dL)
   + Cholesterol (g/dL)
   + Maternal Age (years)
   + Albumin (Testing Indicator)
+
+----
+
+# Sensitivity Analysis
+
+![sensitive-count](sensitive_counts.jpeg)
+
+----
+
+# Sensitivity Analysis
+
+![sensitive-cutoff](sensitive_cutoffs.jpeg)
+
+
