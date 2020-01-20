@@ -258,7 +258,7 @@ barplot(height = MatAgeGestTable[,1] / 100, xlab = "Age Bucket", ylab = "Severel
   + Note for interpretability that the PCB coefficient is relative to the (standardized/centered) first principle component of the pcb_* measurements
 
 ```{r}
-  knitr::kable(round(chem.effect.summary,3))
+  print(as.data.frame(round(chem.effect.summary,3)))
 ```
 
 ----
