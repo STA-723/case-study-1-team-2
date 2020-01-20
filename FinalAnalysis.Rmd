@@ -85,7 +85,7 @@ ord_mod <- polr(gestational_cat ~ race +
                  log_dde + 
                  pcb_pca1 +
                  has_albumin +
-                 poly(maternal_age, 2) + 
+                 poly(maternal_age, 2)+ 
                  log_tri +
                  cholesterol +
                  smoking_status +
@@ -96,7 +96,8 @@ p_ord <- pnorm(abs(coef(summary(ord_mod))[, "t value"]), lower.tail = FALSE) * 2
 cbind(summary(ord_mod)$coefficients, p_ord)
 ```
 
-```{r, diagnostics}
+```{r, diagnostics-linearity}
+# Tutorial from http://www.sthda.com/english/articles/36-classification-methods-essentials/148-logistic-regression-assumptions-and-diagnostics-in-r/
 probabilities <- predict(ord_mod, type = "probs")
 predictors <- c("log_dde", 
                  "pcb_pca1",
@@ -121,8 +122,79 @@ longnecker %>%
   facet_grid(cols = vars(categories), rows = vars(predictors), scales = "free")
 ```
 
+We use package `brant` to test the proportional odds assumption (from this post here: https://medium.com/evangelinelee/brant-test-for-proportional-odds-in-r-b0b373a93aa2). The assumption holds at the 0.05 level.
+
+```{r, diagnostics-prop-odds}
+library(brant)
+test_mod <- polr(gestational_cat ~ race +
+                 log_dde + 
+                 pcb_pca1 +
+                 has_albumin +
+                 maternal_age + 
+                 log_tri +
+                 cholesterol +
+                 smoking_status +
+                 center, 
+               data = longnecker,
+               Hess=TRUE)
+brant(test_mod)
+```
+
 
 ### Sensitivity Analysis
+
+```{r, sensitivity-count, cache=TRUE}
+y <- longnecker$gestational_cat
+n <- 200
+y_hat <- matrix(NA, nrow = length(y), ncol = n)
+for (i in 1:n) {
+  y_hat[, i] <- apply(probabilities, 1, function(x) {which(rmultinom(1, 1, x) == 1)})
+}
+
+# Distribution of count of each category in the simulated data
+count_severe <- apply(y_hat, 2, function(x) {sum(x == 1)})
+count_mild <- apply(y_hat, 2, function(x) {sum(x == 2)})
+count_normal <- apply(y_hat, 2, function(x) {sum(x == 3)})
+sens_data <- data.frame(severe = count_severe, mild = count_mild, normal = count_normal) %>%
+  gather(key = "categories", value = "count")
+ggplot(sens_data, aes(x = count, fill = categories)) + 
+  geom_histogram(bins = 200) +
+  geom_vline(xintercept = 69, color = "red", size = 0.5) +
+  geom_vline(xintercept = 453, color = "red", size = 0.5) +
+  geom_vline(xintercept = 1789, color = "red", size = 0.5)
+```
+
+```{r, sensitivity-cutoff, cache=TRUE}
+ci <- confint(ord_mod)
+ci_df <- data.frame(ci) %>%
+  rownames_to_column() %>%
+  mutate(model = "32-37 (main)")
+cutoffs <- list(c(31, 36), c(33, 38), c(31, 38))
+for (cutoff in cutoffs) {
+  longnecker_test <- longnecker %>%
+    mutate(gestational_cat = as.factor(ifelse(gestational_age <= cutoff[1], 1, 
+                                       ifelse(gestational_age <= cutoff[2] & gestational_age > cutoff[1], 2, 3))))
+  test_mod <- polr(gestational_cat ~ race +
+                 log_dde + 
+                 pcb_pca1 +
+                 has_albumin +
+                 poly(maternal_age, 2) + 
+                 log_tri +
+                 cholesterol +
+                 smoking_status +
+                 center, 
+               data = longnecker_test,
+               Hess=TRUE)
+  ci <- confint(test_mod)
+  df <- data.frame(ci) %>% rownames_to_column() %>% mutate(model = paste0(cutoff[1], "-", cutoff[2]))
+  ci_df <- rbind(ci_df, df)
+}
+pd <- position_dodge(0.2)
+ci_df["mean"] <- (ci_df$X2.5.. + ci_df$X97.5..)/2
+ggplot(ci_df %>% filter(rowname %in% c("raceblack", "log_dde", "pcb_pca1", "has_albumin", "log_tri", "cholesterol")), 
+       aes(y=mean, x=rowname, colour=model)) + 
+  geom_errorbar(aes(ymin=X2.5.., ymax=X97.5..), width=.2, position=pd)
+```
 
 # Section 4: Discussion - comment on advantages and disadvantages of the approach taken and
 briefly discuss other approaches you could have taken instead.
