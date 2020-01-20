@@ -11,8 +11,11 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Abstract/Summary - summarize the problem and the main findings of your project.
 
-# Section 1: Introduction - provide an initial description of the data, study in which it was
-collected and focus of the study/analysis/questions of interest.
+# Section 1: Introduction - provide an initial description of the data, study in which it was collected and focus of the study/analysis/questions of interest.
+
+The data used in this analysis is a subsample of the data collected in the National Collaborative Perinatal Project (CPP), a program which enrolled women during pregnancy and followed their pregnancy outcomes. The project collected demographic information such as race and maternal age as well as lifestyle factors such as smoking status. The subsample contains 2380 women and children for whom additional assaying of serum samples was perfromed and the concentration doses for DDE and PCBs was recorded. DDE and PCBs are of particular interest as they are breakdown products of pesticides that bioaccumulate in fatty deposits of organisms. The goal of this analysis is to assess how exposure to DDE and PCBs relates to the risk of premature delivery. 
+
+Many of the variables in this study exhibit a variety of issues such as uncertainty, inflation, and missingness. Uncertainty is introduced into the variable gestational age as calculating the date of conception is not exact because it typically relies on the first day of the mother's last menstrual period. Assuming the mother did not miss any menstrual cycles, the date of conception could be incorrect by 11-21 days meaning that a gestational age of 47, normally considered highly unlikely, could atually represent a gestational age of 44, normally considered as a plausable late term gestation. There also seems to be some general mismanagement of data as gestational ages of 90 weeks appear in the data even though this is almost twice the length of the longest recorded pregnancy. We also see an inflation of zeros in the PCB variables due to the limitations of measurement equipment that, below a certain threshold, rounds values to zero. Missigness is most significantly present for the variable albumin for which less than 10% of women had their levels recorded. Since albumin can be an indicator of liver disease, kidney disease, and possibly gestational diabetes, the missigness might be due to the fact that only women who were perceived to be at risk were tested. In this case, the simple presence of being tested for albumin would likely be more significant than the actual values recorded.
 
 # Section 2: Materials & Methods - describe the statistical approach/approaches used in the
 analysis, providing references as appropriate; do not present results in this section but just the
@@ -122,7 +125,6 @@ longnecker %>%
 
 ### Sensitivity Analysis
 
-<<<<<<< HEAD
 ```{r}
 pred <- predict(ord_mod, type = "probs")
 predictors <- c("log_dde", 
@@ -169,7 +171,6 @@ plot_summs(ord_mod)
 ```
 
 
-=======
 ```{r, cache=TRUE}
 y <- longnecker$gestational_cat
 n <- 200
@@ -189,7 +190,7 @@ ggplot(sens_data, aes(x = count, fill = categories)) +
   geom_vline(xintercept = 1789, color = "red", size = 0.5)
 ```
 
->>>>>>> d06e3acca5b9a2f9558f4ffba34549eeb7b22de2
+
 # Section 4: Discussion - comment on advantages and disadvantages of the approach taken and
 briefly discuss other approaches you could have taken instead.
 
@@ -197,3 +198,6 @@ briefly discuss other approaches you could have taken instead.
 but may make the main part difficult to read, particularly for a non-specialist/scientist. Sections
 1-4 should be as accessible as possible to a non-statistician scientist/researcher in the relevant
 area & should be written in a clear/concise manner.
+
+# Citations
+https://www.who.int/news-room/fact-sheets/detail/preterm-birth

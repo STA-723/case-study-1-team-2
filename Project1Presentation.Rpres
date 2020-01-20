@@ -83,6 +83,8 @@ Long.Base.Mod = polr(gestord~ center + dde + PCB1 + triglycerides  + maternal_ag
 
 Base.Confint = confint(Long.Base.Mod)
 
+knitr::kable(Base.Confint)
+
 ### PCA Analysis ###
 
 Long.PCA.1.2.3 = polr(gestord~ center + dde + PCB1 + PCB2 + PCB3 + triglycerides  + maternal_age + smoking_status + cholesterol + albuminTested, data = Long)
@@ -136,13 +138,13 @@ Center.Inclusion.Anova = anova(no.center.mod, Long.Base.Mod)
 ## DDE PCA Interaction
 Long.PCA.DDE.Inter.Mod = polr(gestord~ center + dde * PCB1 + triglycerides  + maternal_age + smoking_status + cholesterol + albuminTested, data = Long)
 
-anova(Long.Base.Mod, Long.PCA.DDE.Inter.Mod)
+DDE.PCA.Inter.Anova = anova(Long.Base.Mod, Long.PCA.DDE.Inter.Mod)
 
 
 ## DDE/PCA Triglyceride Interaction
 Long.Trig.Inter.Mod = polr(gestord~ center + dde*triglycerides + PCB1*triglycerides  + maternal_age + smoking_status + cholesterol + albuminTested, data = Long)
 
-anova(Long.Base.Mod, Long.Trig.Inter.Mod)
+Trig.Inter.Anov = anova(Long.Base.Mod, Long.Trig.Inter.Mod)
 
 
 ```
