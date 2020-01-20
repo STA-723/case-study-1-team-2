@@ -1,16 +1,41 @@
 ---
-title: "Case Study 1"
+  title: "Case Study 1"
 author: 
   - "Emily Gentles"
-  - "Phuc Nguyen"
-  - "Joseph Lawson"
+- "Phuc Nguyen"
+- "Joseph Lawson"
 date: "Jan 21, 2020"
 output: beamer_presentation
 ---
-
-```{r setup, include=FALSE}
+  
+  ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
 ```
+
+# Case Discussion
+
+- Data obtained from a subset of women enrolled in the CPP during pregnancy
+- Data issues: uncertainty, inflation, and missingness
+
+**Goal**: Assess how exposure to DDE and PCBs relates to the risk of premature delivery
+
+Graph?
+  
+  # Exploratory Data Analysis
+  
+  
+  ```{r}
+
+```
+
+# Analysis
+
+- Ordinal Logistic Regression with Term, Preterm, and Severely Preterm Gest. Categories
+- Keep obs with Gest. Age 44 or less
+- Impute score data with MICE to check usefulness
+- Remove obs with missing PCE value
+- Include blood cholesterol/triglyceride levels, as well as center and SES/Lifestyle metrics
+
 
 ```{r, echo=FALSE, eval = TRUE, warning = FALSE, message = FALSE}
 library(tidyverse)
@@ -19,6 +44,7 @@ library(nnet)
 library(corrplot)
 library(quantreg)
 library(MASS)
+library(effects)
 library(knitr)
 library(tigerstats)
 set.seed(43)
@@ -30,14 +56,14 @@ Long <- Long %>% mutate(albuminTested = ifelse(is.na(albumin), 0, 1)) %>% filter
 
 Long = Long %>% mutate(termCat = cut(gestational_age, c(breaks = c(0, 32, 37 ,45))), center = as.character(center),
                        pcb = pcb_028 + pcb_052 + pcb_074 + pcb_105 + pcb_118 + pcb_153 + pcb_170 +
-                            pcb_138 + pcb_180 + pcb_194 + pcb_203,
+                         pcb_138 + pcb_180 + pcb_194 + pcb_203,
                        # ed_norm = qnorm(score_education / 100),
                        # inc_norm = qnorm(score_education / 100),
                        # occ_norm = qnorm(score_occupation / 100),
                        dde.cut = cut(dde, breaks = 5),
                        pcb.cut = cut(pcb, breaks = 5),
                        gestord = factor(termCat, ordered = TRUE)
-                       ) %>% filter(!is.na(pcb))
+) %>% filter(!is.na(pcb))
 
 
 # ADD PRINCIPLE COMPONENTs
@@ -91,16 +117,16 @@ PCA.anova = anova(Long.Base.Mod, Long.PCA.1.2.3)
 # impLong = mice(Long, printFlag = F)
 impLong = mice(Long %>% mutate(ldde = log(dde), ltrig = log(triglycerides), lchol = log(cholesterol)) %>% 
                  dplyr::select(gestord,center, score_occupation, score_education, score_income, ldde, logPCB1,
-                                 ltrig, maternal_age, smoking_status, lchol,
-                                 albuminTested), printFlag = F)
+                               ltrig, maternal_age, smoking_status, lchol,
+                               albuminTested), printFlag = F)
 imp.OL.Mod = with(impLong, polr(gestord ~ center + score_occupation +score_education +
                                   score_income + ldde + logPCB1 + 
-                                    ltrig  + maternal_age + smoking_status + 
-                                    lchol + albuminTested, Hess = T))
+                                  ltrig  + maternal_age + smoking_status + 
+                                  lchol + albuminTested, Hess = T))
 
 imp.OL.Mod.wo.score = with(impLong, polr(gestord ~ center  + ldde + logPCB1 + 
-                                    ltrig  + maternal_age + smoking_status + 
-                                    lchol + albuminTested, Hess = T))
+                                           ltrig  + maternal_age + smoking_status + 
+                                           lchol + albuminTested, Hess = T))
 
 score.p.value = pool.compare(imp.OL.Mod, imp.OL.Mod.wo.score)$pvalue
 
@@ -160,9 +186,9 @@ Age.Poly.Anova = anova(Long.Base.Mod, Long.Age.Poly.Mod)
 Long$MatAgeCat = cut(Long$maternal_age, 4)
 
 MatAgeGestTable = rowPerc(xtabs(formula = ~ MatAgeCat + gestord, data = Long))
-# plot(MatAgeGestTable[,1], type = "l")
-# barplot(height = MatAgeGestTable[,1] / 100, xlab = "Age Bucket", ylab = "Severely Preterm Percentage", 
-#         main = "Severely Preterm Probability vs Maternal Age")
+plot(MatAgeGestTable[,1], type = "l")
+barplot(height = MatAgeGestTable[,1] / 100, xlab = "Age Bucket", ylab = "Severely Preterm Percentage", 
+        main = "Severely Preterm Probability vs Maternal Age")
 ## Conclude that the polynomial term is important.
 
 
@@ -178,103 +204,15 @@ final.confint = confint(Final.Mod)
 
 chem.effect.summary = cbind(final.coef[c("log(dde)","logPCB1")], final.confint[c("log(dde)", "logPCB1"),])
 colnames(chem.effect.summary)[1] = "Coef Est"
-
-Long$logdde = log(Long$dde)
 ```
-
-# Case Discussion
-
-- Data obtained from a subset of women enrolled in the CPP during pregnancy
-- Data issues: uncertainty, inflation, and missingness
-
-**Goal**: Assess how exposure to DDE and PCBs relates to the risk of premature delivery and the relative severity thereof
-
-
-
-# Exploratory Data Analysis
-
-----
-
-```{r, echo = FALSE}
-barplot(height = MatAgeGestTable[,1] / 100, xlab = "Age Bucket", ylab = "Severely Preterm Percentage",
-        main = "Severely Preterm Probability vs Maternal Age")
-```
-
-
-# Analysis
-
-- Ordinal Logistic Regression with Term, Preterm, and Severely Preterm Gest. Categories
-  + Useful interpretation in terms of risk
-  + Uses naturally ordinal structure
-  + Differentiates between different severities
-  + Addresses non-normality of response
-- Keep obs with Gest. Age 44 or less
-- Impute score data with MICE to check usefulness
-- Remove obs with missing PCB value
-- Include blood cholesterol/triglyceride levels, as well as center and SES/Lifestyle metrics
-- As albumin his highly missing, include indicator for whether it was tested at all
-
-
-
-----
-
-- Model Comparison indicated (p=`r round(PCA.anova[2,"Pr(Chi)"],2) `) that the first principle component of the pcb_* values is sufficient.
-- Indication (p=`r round(score.p.value, 2)`) against including Score Variables (post imputation)
-- Indication (p=`r round(Center.Inter.Anova[2, "Pr(Chi)"],2) `) against including Center interactions
-- Indication (p=`r round(Center.Inclusion.Anova[2, "Pr(Chi)"],2) `) for including Center as variable
-  + Indicates heterogeneity in preterm birth risk accross medical centers
-
-----
-
-- Indication (p=`r round(DDE.PCA.Inter.Anova[2, "Pr(Chi)"],2) `) against PCB-DDE interaction effect
-- Indication (p=`r round(Trig.Inter.Anova[2, "Pr(Chi)"],2) `) (weakly) against Triglyceride interaction with PCE/DDE
-  + Hypothesized that there might be because of fat-solubility of the contaminants of interest
-- Indication (p=`r round(Age.Poly.Anova[2, "Pr(Chi)"],2) `) for inclusion of quadratic term in maternal age
-  + Makes sense given heightened birth risk at (relatively) yound and old ages of pregnancy (for possibly different reasons)
-- Strong indication that the indicator of testing for Albumin is associated with longer gestational period on the margin
-
-----
-
-
 
 # Results
 
 - (log) DDE and PCB both significantly associated with preterm delivery likelihood even when adjusting for other factors
-- Interpretation that 1% increase in DDE/PCB approximately associated with a `r round(final.coef["log(dde)"],2)`% change and a `r round(final.coef["logPCB1"],2)`% change, respectively in the log odds of of a gestational age occurrence below a given ordinal threshold.
-  + Note for interpretability that the PCB coefficient is relative to the (standardized/centered) first principle component of the pcb_* measurements
+- Model Comparison indicated (p=`r round(PCA.anova[2,"Pr(Chi)"],2) `) that the first principle component of the pcb_* values is sufficient.
 
-```{r}
-  knitr::kable(round(chem.effect.summary,3))
+```{r, fig.margin = TRUE}
+knitr::kable(chem.effect.summary)
 ```
 
-----
-
-```{r Results}
-probabilities <- predict(Final.Mod, type = "probs")
-predictors <- c("logdde", "logPCB1","severe_premature", "premature", "normal"
-                )
-Long %>%
-  mutate(severe_premature = probabilities[,1],
-         premature = probabilities[, 2],
-         normal = probabilities[, 3]
-         ) %>%
-  dplyr::select(predictors) %>%
-  gather(key = "predictors", value = "predictor.value", 
-         -severe_premature, -premature, -normal) %>%
-  gather(key = "categories", value = "probability", -predictors, -predictor.value) %>%
-  ggplot(aes(probability, predictor.value))+
-  geom_point(size = 0.5, alpha = 0.5) +
-  geom_smooth(method = "loess") + 
-  theme_bw() + 
-  facet_grid(cols = vars(categories), rows = vars(predictors), scales = "free") +
-  ggtitle("Fitted Probabilities vs DDE (ug/dL)/PCB (ng/dL)  (log scale)")
-```
-
-----
-
-- Control Variables of Significance:
-  + Center
-  + Triglycerides (g/dL)
-  + Cholesterol (g/dL)
-  + Maternal Age (years)
-  + Albumin (Testing Indicator)
+# Discussion
