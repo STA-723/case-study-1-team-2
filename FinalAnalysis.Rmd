@@ -85,7 +85,7 @@ ord_mod <- polr(gestational_cat ~ race +
                  log_dde + 
                  pcb_pca1 +
                  has_albumin +
-                 poly(maternal_age, 2) + 
+                 poly(maternal_age, 2)+ 
                  log_tri +
                  cholesterol +
                  smoking_status +
@@ -96,7 +96,7 @@ p_ord <- pnorm(abs(coef(summary(ord_mod))[, "t value"]), lower.tail = FALSE) * 2
 cbind(summary(ord_mod)$coefficients, p_ord)
 ```
 
-```{r, diagnostics}
+```{r, diagnostics-linearity}
 # Tutorial from http://www.sthda.com/english/articles/36-classification-methods-essentials/148-logistic-regression-assumptions-and-diagnostics-in-r/
 probabilities <- predict(ord_mod, type = "probs")
 predictors <- c("log_dde", 
@@ -120,6 +120,25 @@ longnecker %>%
   theme_bw() + 
   facet_grid(cols = vars(categories), rows = vars(predictors), scales = "free")
 ```
+
+We use package `brant` to test the proportional odds assumption (from this post here: https://medium.com/evangelinelee/brant-test-for-proportional-odds-in-r-b0b373a93aa2). The assumption holds at the 0.05 level.
+
+```{r, diagnostics-prop-odds}
+library(brant)
+test_mod <- polr(gestational_cat ~ race +
+                 log_dde + 
+                 pcb_pca1 +
+                 has_albumin +
+                 maternal_age + 
+                 log_tri +
+                 cholesterol +
+                 smoking_status +
+                 center, 
+               data = longnecker,
+               Hess=TRUE)
+brant(test_mod)
+```
+
 
 ### Sensitivity Analysis
 
