@@ -66,7 +66,7 @@ Long = Long %>% mutate(logPCB1 = -pcb.pr$x[,1], logPCB2 = pcb.pr$x[,2], logPCB3 
 
 ### BASE MODEL
 
-Long.Base.Mod = polr(gestord~ center + log(dde) + logPCB1 + log(triglycerides)  + maternal_age + smoking_status + log(cholesterol) + albuminTested, data = Long,
+Long.Base.Mod = polr(gestord~ center + log(dde) + logPCB1 + log(triglycerides)  + maternal_age + smoking_status + log(cholesterol) + albuminTested + race, data = Long,
                      Hess = T)
 # summary(Long.Base.Mod)
 Base.Confint = confint(Long.Base.Mod)
@@ -75,7 +75,7 @@ Base.Confint = confint(Long.Base.Mod)
 
 ### PCA Analysis ###
 
-Long.PCA.1.2.3 = polr(gestord~ center + log(dde) + logPCB1 + logPCB2 + logPCB3 + log(triglycerides)  + maternal_age + smoking_status + log(cholesterol) + albuminTested, data = Long)
+Long.PCA.1.2.3 = polr(gestord~ center + log(dde) + logPCB1 + logPCB2 + logPCB3 + log(triglycerides)  + maternal_age + smoking_status + log(cholesterol) + albuminTested + race, data = Long)
 
 
 # Long.PCA.logged = polr(gestord~ center + log(dde)*log(logPCB1) + log(triglycerides)  + maternal_age + smoking_status + cholesterol + albuminTested, data = Long)
@@ -94,15 +94,15 @@ PCA.anova = anova(Long.Base.Mod, Long.PCA.1.2.3)
 impLong = mice(Long %>% mutate(ldde = log(dde), ltrig = log(triglycerides), lchol = log(cholesterol)) %>% 
                  dplyr::select(gestord,center, score_occupation, score_education, score_income, ldde, logPCB1,
                                  ltrig, maternal_age, smoking_status, lchol,
-                                 albuminTested), printFlag = F)
+                                 albuminTested + race), printFlag = F)
 imp.OL.Mod = with(impLong, polr(gestord ~ center + score_occupation +score_education +
                                   score_income + ldde + logPCB1 + 
                                     ltrig  + maternal_age + smoking_status + 
-                                    lchol + albuminTested, Hess = T))
+                                    lchol + albuminTested + race, Hess = T))
 
 imp.OL.Mod.wo.score = with(impLong, polr(gestord ~ center  + ldde + logPCB1 + 
                                     ltrig  + maternal_age + smoking_status + 
-                                    lchol + albuminTested, Hess = T))
+                                    lchol + albuminTested + race, Hess = T))
 
 score.p.value = pool.compare(imp.OL.Mod, imp.OL.Mod.wo.score)$pvalue
 
@@ -115,14 +115,14 @@ MICE.summary = summary(pool(imp.OL.Mod))
 ###### Check Center Interactions/inclusion
 ##########################################
 
-center.inter.mod = polr(gestord~ center*(log(dde) + logPCB1 + log(triglycerides)  + maternal_age + smoking_status + log(cholesterol) + albuminTested), data = Long, Hess = T)
+center.inter.mod = polr(gestord~ center*(log(dde) + logPCB1 + log(triglycerides)  + maternal_age + smoking_status + log(cholesterol) + albuminTested + race), data = Long, Hess = T)
 
 Center.Inter.Anova = anova(center.inter.mod, Long.Base.Mod)
 
 ## Note that center interaction not significant
 
 no.center.mod = polr(gestord~ log(dde) + logPCB1 + log(triglycerides)  + 
-                       maternal_age + smoking_status + log(cholesterol) + albuminTested, data = Long, Hess = T)
+                       maternal_age + smoking_status + log(cholesterol) + albuminTested + race, data = Long, Hess = T)
 
 Center.Inclusion.Anova = anova(no.center.mod, Long.Base.Mod)
 
@@ -135,7 +135,7 @@ Center.Inclusion.Anova = anova(no.center.mod, Long.Base.Mod)
 
 ## DDE PCA Interaction
 Long.PCA.DDE.Inter.Mod = polr(gestord~ center + log(dde) * logPCB1 + log(triglycerides)  + maternal_age + 
-                                smoking_status + log(cholesterol) + albuminTested, data = Long, Hess = T)
+                                smoking_status + log(cholesterol) + albuminTested + race, data = Long, Hess = T)
 
 DDE.PCA.Inter.Anova = anova(Long.Base.Mod, Long.PCA.DDE.Inter.Mod)
 
@@ -144,7 +144,7 @@ DDE.PCA.Inter.Anova = anova(Long.Base.Mod, Long.PCA.DDE.Inter.Mod)
 ## DDE/PCA Triglyceride Interaction
 # Justified because these chemicals are fat-soluble.
 Long.Trig.Inter.Mod = polr(gestord~ center + log(dde)*log(triglycerides) + logPCB1*log(triglycerides)  + 
-                             maternal_age + smoking_status + log(cholesterol) + albuminTested, data = Long, Hess = T)
+                             maternal_age + smoking_status + log(cholesterol) + albuminTested + race, data = Long, Hess = T)
 
 Trig.Inter.Anova = anova(Long.Base.Mod, Long.Trig.Inter.Mod)
 
@@ -153,7 +153,7 @@ Trig.Inter.Anova = anova(Long.Base.Mod, Long.Trig.Inter.Mod)
 #### check maternal age poly #############
 ##########################################
 
-Long.Age.Poly.Mod = polr(gestord~ center + log(dde) + logPCB1 + log(triglycerides)  + poly(maternal_age,2) + smoking_status + log(cholesterol) + albuminTested, data = Long, Hess = T)
+Long.Age.Poly.Mod = polr(gestord~ center + log(dde) + logPCB1 + log(triglycerides)  + poly(maternal_age,2) + smoking_status + log(cholesterol) + albuminTested + race, data = Long, Hess = T)
 
 
 Age.Poly.Anova = anova(Long.Base.Mod, Long.Age.Poly.Mod)
@@ -173,7 +173,7 @@ MatAgeGestTable = rowPerc(xtabs(formula = ~ MatAgeCat + gestord, data = Long))
 ##########################################
 
 
-Final.Mod = polr(gestord~ center + log(dde) + logPCB1 + log(triglycerides)  + poly(maternal_age,2) + smoking_status + log(cholesterol) + albuminTested, data = Long, Hess = T)
+Final.Mod = polr(gestord~ center + log(dde) + logPCB1 + log(triglycerides)  + poly(maternal_age,2) + smoking_status + log(cholesterol) + albuminTested + race, data = Long, Hess = T)
 
 final.coef = coef(Final.Mod)
 final.confint = confint(Final.Mod)
