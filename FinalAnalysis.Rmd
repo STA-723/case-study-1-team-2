@@ -1,0 +1,133 @@
+---
+title: "Final Report"
+author: "Phuc Nguyen, Joseph Lawson, Emily Gentles"
+date: "1/20/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Abstract/Summary - summarize the problem and the main findings of your project.
+
+# Section 1: Introduction - provide an initial description of the data, study in which it was
+collected and focus of the study/analysis/questions of interest.
+
+# Section 2: Materials & Methods - describe the statistical approach/approaches used in the
+analysis, providing references as appropriate; do not present results in this section but just the
+methods used. You can carry out your analysis with multiple methods.
+
+# Section 3: Results - describe the results of the analysis approaches described in Section 2. It
+may be useful to break this into subsections, such as:
+– 3.1 Exploratory Data Analysis
+– 3.2 Main Results
+– 3.3 Sensitivity Analysis
+Make sure to very clearly address the questions of interest!
+
+### EDA
+
+```{r, library, message=FALSE, results=FALSE}
+library(tidyverse)
+library(mice)
+library(MASS)
+```
+
+```{r, clean-data}
+longnecker_base <- readRDS(file = "Longnecker.rds")
+
+# Keep gestational age less than 45
+# Remove 1 row of pcb_* with NA
+# Dichotomize gestational age into 4 categories
+# Create indicator of albumin
+# Change center to categorical
+gestational_age_cutoff <- 45
+longnecker <- longnecker_base %>%
+  filter(gestational_age < gestational_age_cutoff) %>%
+  filter(!is.na(pcb_028)) %>%
+  mutate(has_albumin = 1 * !is.na(albumin)) %>%
+  mutate(center = as.character(center)) %>%
+  mutate(gestational_cat = as.factor(ifelse(gestational_age <= 32, 1, 
+                                            ifelse(gestational_age <= 37 & gestational_age > 32, 2,
+                                                   ifelse(gestational_age > 37 & gestational_age <= 41, 3, 4)))))
+
+# Log transform pcb_* after adding a small number to 0 values
+pcb_mat <- longnecker %>%
+                    dplyr::select(contains("pcb")) %>%
+                    data.matrix()
+min_pcb <- min(pcb_mat[pcb_mat > 0])
+pcb_mat[pcb_mat == 0] <- min_pcb / 2
+pcb_mat <- apply(pcb_mat, 2, log)
+# Summarize pcb_* with PCA
+pcb_pca <- prcomp(pcb_mat, scale = TRUE)
+# To see loading of each variable, uncomment the below:
+#pcb_pca$rotation[, 1] * (pcb_mat[1, ] - pcb_pca$center)/ pcb_pca$scale
+# To see variation explained by each PC, uncomment the below:
+# pcb_pca$sdev^2 # == > two PCs are enough
+pcb_comps <- pcb_mat %*% pcb_pca$rotation[, c(1,2)]
+longnecker["pcb_pca1"] <- pcb_comps[, 1]
+longnecker["pcb_pca2"] <- pcb_comps[, 2]
+
+# Log transform these variables
+longnecker["log_dde"] <- log(longnecker$dde)
+longnecker["log_tri"] <- log(longnecker$triglycerides)
+```
+
+```{r}
+
+```
+
+
+### Ordered logistic regression
+
+```{r, ord}
+ord_mod <- polr(gestational_cat ~ race +
+                 log_dde + 
+                 pcb_pca1 +
+                 has_albumin +
+                 poly(maternal_age, 2) + 
+                 log_tri +
+                 cholesterol +
+                 smoking_status +
+                 center, 
+               data = longnecker,
+               Hess=TRUE)
+p_ord <- pnorm(abs(coef(summary(ord_mod))[, "t value"]), lower.tail = FALSE) * 2
+cbind(summary(ord_mod)$coefficients, p_ord)
+```
+
+```{r, diagnostics}
+probabilities <- predict(ord_mod, type = "probs")
+predictors <- c("log_dde", 
+                 "pcb_pca1",
+                 "log_tri",
+                 "cholesterol",
+                 "severe_premature", "premature", "normal","late"
+                )
+longnecker %>%
+  mutate(severe_premature = log(probabilities[, 1]/(1-probabilities[, 1])),
+         premature = log(probabilities[, 2]/(1-probabilities[, 2])),
+         normal = log(probabilities[, 3]/(1-probabilities[, 3])),
+         late = log(probabilities[, 4]/(1-probabilities[, 4]))
+         ) %>%
+  dplyr::select(predictors) %>%
+  gather(key = "predictors", value = "predictor.value", 
+         -severe_premature, -premature, -normal, -late) %>%
+  gather(key = "categories", value = "logit.value", -predictors, -predictor.value) %>%
+  ggplot(aes(logit.value, predictor.value))+
+  geom_point(size = 0.5, alpha = 0.5) +
+  geom_smooth(method = "loess") + 
+  theme_bw() + 
+  facet_grid(cols = vars(categories), rows = vars(predictors), scales = "free")
+```
+
+
+### Sensitivity Analysis
+
+# Section 4: Discussion - comment on advantages and disadvantages of the approach taken and
+briefly discuss other approaches you could have taken instead.
+
+# Appendix - contains any necessary technical and other material that would be good to include
+but may make the main part difficult to read, particularly for a non-specialist/scientist. Sections
+1-4 should be as accessible as possible to a non-statistician scientist/researcher in the relevant
+area & should be written in a clear/concise manner.
