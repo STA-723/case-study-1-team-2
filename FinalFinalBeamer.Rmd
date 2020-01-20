@@ -256,7 +256,16 @@ barplot(height = MatAgeGestTable[,1] / 100, xlab = "Age Bucket", ylab = "Severel
 
 ----
 
+- Control Variables of Significance (marginally) in Final Model:
+  + Center
+  + Triglycerides (g/dL)
+  + Cholesterol (g/dL)
+  + Maternal Age (years)
+  + Albumin (Testing Indicator)
 
+# Final Model
+
+\begin{align} GestCategory &\sim Center+log(dde)+logPCB1 \\ &+log(trigl.)+Poly(MaternalAge,2) \\&+Smoking+Log(Cholest.)+AlbuminTested\end{align} 
 
 # Results
 
@@ -291,13 +300,5 @@ Long %>%
   ggtitle("Fitted Probabilities vs DDE (ug/dL)/PCB (princ comp.)  (log scale)")
 ```
 
-----
 
-- Control Variables of Significance:
-  + Center
-  + Triglycerides (g/dL)
-  + Cholesterol (g/dL)
-  + Maternal Age (years)
-  + Albumin (Testing Indicator)
-
-- 
+  
