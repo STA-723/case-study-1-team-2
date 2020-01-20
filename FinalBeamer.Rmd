@@ -12,38 +12,6 @@ output: beamer_presentation
 knitr::opts_chunk$set(echo = FALSE)
 ```
 
-# Case Discussion
-
-- Data obtained from a subset of women enrolled in the CPP during pregnancy
-- Data issues: uncertainty, inflation, and missingness
-
-**Goal**: Assess how exposure to DDE and PCBs relates to the risk of premature delivery
-
-```{r gest.plot, echo = FALSE}
-library(ggplot2)
-ggplot(data = longnecker_base, aes(x = gestational_age)) + geom_histogram(binwidth = 1) + geom_vline(aes(xintercept = 45),color="blue", linetype="dashed", size=1) + labs(x="Gestational Age in Weeks", y = "Count")
-```
-
-# Exploratory Data Analysis
-
-
-```{r}
-
-```
-
-# Analysis
-
-- Ordinal Logistic Regression with Term, Preterm, and Severely Preterm Gest. Categories
-  + Useful interpretation in terms of risk
-  + Uses naturally ordinal structure
-  + Differentiates between different severities
-  + Addresses non-normality of response
-- Keep obs with Gest. Age 44 or less
-- Impute score data with MICE to check usefulness
-- Remove obs with missing PCE value
-- Include blood cholesterol/triglyceride levels, as well as center and SES/Lifestyle metrics
-
-
 =======
 ```{r, echo=FALSE, eval = TRUE, warning = FALSE, message = FALSE}
 library(tidyverse)
@@ -55,9 +23,11 @@ library(MASS)
 library(effects)
 library(knitr)
 library(tigerstats)
+library(ggplot2)
 set.seed(43)
 
 Long <- readRDS("Longnecker.rds")
+longnecker_b <- Long
 Long <- Long %>% mutate(albuminTested = ifelse(is.na(albumin), 0, 1)) %>% filter(gestational_age <= 44) %>% 
   filter(!is.na(pcb_028)) %>% dplyr::select(-albumin)
 
@@ -215,6 +185,43 @@ colnames(chem.effect.summary)[1] = "Coef Est"
 
 Long$logdde = log(Long$dde)
 ```
+
+# Case Discussion
+
+- Data obtained from a subset of women enrolled in the CPP during pregnancy
+- Data issues: uncertainty, inflation, and missingness
+
+**Goal**: Assess how exposure to DDE and PCBs relates to the risk of premature delivery
+
+```{r gest.plot, echo = FALSE}
+library(ggplot2)
+ggplot(data = longnecker_b, aes(x = gestational_age)) + geom_histogram(binwidth = 1) + geom_vline(aes(xintercept = 45),color="blue", linetype="dashed", size=1) + labs(x="Gestational Age in Weeks", y = "Count")
+```
+
+# Exploratory Data Analysis
+
+----
+
+```{r, echo = FALSE}
+barplot(height = MatAgeGestTable[,1] / 100, xlab = "Age Bucket", ylab = "Severely Preterm Percentage",
+        main = "Severely Preterm Probability vs Maternal Age")
+```
+
+
+# Analysis
+
+- Ordinal Logistic Regression with Term, Preterm, and Severely Preterm Gest. Categories
+  + Useful interpretation in terms of risk
+  + Uses naturally ordinal structure
+  + Differentiates between different severities
+  + Addresses non-normality of response
+- Keep obs with Gest. Age 44 or less
+- Impute score data with MICE to check usefulness
+- Remove obs with missing PCB value
+- Include blood cholesterol/triglyceride levels, as well as center and SES/Lifestyle metrics
+- As albumin his highly missing, include indicator for whether it was tested at all
+
+
 
 ----
 
