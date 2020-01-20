@@ -31,6 +31,10 @@ Graph?
 # Analysis
 
 - Ordinal Logistic Regression with Term, Preterm, and Severely Preterm Gest. Categories
+  + Useful interpretation in terms of risk
+  + Uses naturally ordinal structure
+  + Differentiates between different severities
+  + Addresses non-normality of response
 - Keep obs with Gest. Age 44 or less
 - Impute score data with MICE to check usefulness
 - Remove obs with missing PCE value
@@ -186,9 +190,9 @@ Age.Poly.Anova = anova(Long.Base.Mod, Long.Age.Poly.Mod)
 Long$MatAgeCat = cut(Long$maternal_age, 4)
 
 MatAgeGestTable = rowPerc(xtabs(formula = ~ MatAgeCat + gestord, data = Long))
-plot(MatAgeGestTable[,1], type = "l")
-barplot(height = MatAgeGestTable[,1] / 100, xlab = "Age Bucket", ylab = "Severely Preterm Percentage", 
-        main = "Severely Preterm Probability vs Maternal Age")
+# plot(MatAgeGestTable[,1], type = "l")
+# barplot(height = MatAgeGestTable[,1] / 100, xlab = "Age Bucket", ylab = "Severely Preterm Percentage", 
+#         main = "Severely Preterm Probability vs Maternal Age")
 ## Conclude that the polynomial term is important.
 
 
@@ -206,10 +210,30 @@ chem.effect.summary = cbind(final.coef[c("log(dde)","logPCB1")], final.confint[c
 colnames(chem.effect.summary)[1] = "Coef Est"
 ```
 
+----
+
+- Model Comparison indicated (p=`r round(PCA.anova[2,"Pr(Chi)"],2) `) that the first principle component of the pcb_* values is sufficient.
+- Indication (p=`r round(score.p.value, 2)`) against including Score Variables (post imputation)
+- Indication (p=`r round(Center.Inter.Anova[2, "Pr(Chi)"],2) `) against including Center interactions
+- Indication (p=`r round(Center.Inclusion.Anova[2, "Pr(Chi)"],2) `) for including Center as variable
+  + Indicates heterogeneity in preterm birth risk accross medical centers
+- Indication (p=`r round(DDE.PCA.Inter.Anova[2, "Pr(Chi)"],2) `) against PCE-DDE interaction effect
+- Indication (p=`r round(Trig.Inter.Anova[2, "Pr(Chi)"],2) `) (weakly) against Triglyceride interaction with PCE/DDE
+  + Hypothesized that there might be because of fat-solubility of the contaminants of interest
+- Indication (p=`r round(Age.Poly.Anova[2, "Pr(Chi)"],2) `) for inclusion of quadratic term in maternal age
+  + Makes sense given heightened birth risk at (relatively) yound and old ages of pregnancy (for possibly different reasons)
+
+----
+
+```{r, echo = FALSE}
+barplot(height = MatAgeGestTable[,1] / 100, xlab = "Age Bucket", ylab = "Severely Preterm Percentage",
+        main = "Severely Preterm Probability vs Maternal Age")
+```
+
 # Results
 
 - (log) DDE and PCB both significantly associated with preterm delivery likelihood even when adjusting for other factors
-- Model Comparison indicated (p=`r round(PCA.anova[2,"Pr(Chi)"],2) `) that the first principle component of the pcb_* values is sufficient.
+
 
 ```{r, fig.margin = TRUE}
   knitr::kable(chem.effect.summary)
