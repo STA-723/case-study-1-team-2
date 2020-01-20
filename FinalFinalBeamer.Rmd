@@ -191,6 +191,7 @@ Long$logdde = log(Long$dde)
 
 **Goal**: Assess how exposure to DDE and PCBs relates to the risk of premature delivery and the relative severity thereof
 
+----
 
 ```{r gest.plot, echo = FALSE}
 library(ggplot2)
@@ -199,8 +200,10 @@ ggplot(data = longnecker_b, aes(x = gestational_age)) + geom_histogram(binwidth 
 
 # Exploratory Data Analysis
 
-![corr-plot](collinear.jpg) 
+![corr-plot](collinear.jpg){width=300px}
+
 ----
+
 ```{r}
 Long %>%
   dplyr::select(pcb_170, pcb_138, pcb_203) %>%
@@ -208,6 +211,7 @@ Long %>%
   ggplot(aes(x = val)) + geom_histogram(bins=30) + facet_wrap(~var)
 ```
 
+----
 
 ```{r, echo = FALSE}
 barplot(height = MatAgeGestTable[,1] / 100, xlab = "Age Bucket", ylab = "Severely Preterm Percentage",
@@ -221,7 +225,6 @@ barplot(height = MatAgeGestTable[,1] / 100, xlab = "Age Bucket", ylab = "Severel
   + Useful interpretation in terms of risk
   + Uses naturally ordinal structure
   + Differentiates between different severities
-  + Addresses non-normality of response
 - Keep obs with Gest. Age 44 or less
 - Impute score data with MICE to check usefulness
 - Remove obs with missing PCB value
