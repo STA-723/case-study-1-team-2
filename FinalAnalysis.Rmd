@@ -48,8 +48,8 @@ longnecker <- longnecker_base %>%
   mutate(has_albumin = 1 * !is.na(albumin)) %>%
   mutate(center = as.character(center)) %>%
   mutate(gestational_cat = as.factor(ifelse(gestational_age <= 32, 1, 
-                                            ifelse(gestational_age <= 37 & gestational_age > 32, 2, 3))))
-                                                   #ifelse(gestational_age > 37 & gestational_age <= 41, 3, 4)))))
+                                            ifelse(gestational_age <= 37 & gestational_age > 32, 2,
+                                                   ifelse(gestational_age > 37 & gestational_age <= 41, 3, 4)))))
 
 # Log transform pcb_* after adding a small number to 0 values
 pcb_mat <- longnecker %>%
@@ -103,16 +103,17 @@ predictors <- c("log_dde",
                  "pcb_pca1",
                  "log_tri",
                  "cholesterol",
-                 "severe_premature", "premature", "normal"
+                 "severe_premature", "premature", "normal","late"
                 )
 longnecker %>%
   mutate(severe_premature = log(probabilities[, 1]/(1-probabilities[, 1])),
          premature = log(probabilities[, 2]/(1-probabilities[, 2])),
-         normal = log(probabilities[, 3]/(1-probabilities[, 3]))
+         normal = log(probabilities[, 3]/(1-probabilities[, 3])),
+         late = log(probabilities[, 4]/(1-probabilities[, 4]))
          ) %>%
   dplyr::select(predictors) %>%
   gather(key = "predictors", value = "predictor.value", 
-         -severe_premature, -premature, -normal) %>%
+         -severe_premature, -premature, -normal, -late) %>%
   gather(key = "categories", value = "logit.value", -predictors, -predictor.value) %>%
   ggplot(aes(logit.value, predictor.value))+
   geom_point(size = 0.5, alpha = 0.5) +
