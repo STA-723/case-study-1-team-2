@@ -66,7 +66,8 @@ Long = Long %>% mutate(logPCB1 = -pcb.pr$x[,1], logPCB2 = pcb.pr$x[,2], logPCB3 
 
 ### BASE MODEL
 
-Long.Base.Mod = polr(gestord~ center + log(dde) + logPCB1 + log(triglycerides)  + maternal_age + smoking_status + log(cholesterol) + albuminTested + race, data = Long,
+Long.Base.Mod = polr(gestord~ center + log(dde) + logPCB1 + log(triglycerides)  + maternal_age + smoking_status + log(cholesterol) + 
+                       albuminTested + race, data = Long,
                      Hess = T)
 # summary(Long.Base.Mod)
 Base.Confint = confint(Long.Base.Mod)
@@ -94,7 +95,7 @@ PCA.anova = anova(Long.Base.Mod, Long.PCA.1.2.3)
 impLong = mice(Long %>% mutate(ldde = log(dde), ltrig = log(triglycerides), lchol = log(cholesterol)) %>% 
                  dplyr::select(gestord,center, score_occupation, score_education, score_income, ldde, logPCB1,
                                  ltrig, maternal_age, smoking_status, lchol,
-                                 albuminTested + race), printFlag = F)
+                                 albuminTested,race), printFlag = F)
 imp.OL.Mod = with(impLong, polr(gestord ~ center + score_occupation +score_education +
                                   score_income + ldde + logPCB1 + 
                                     ltrig  + maternal_age + smoking_status + 
@@ -115,7 +116,7 @@ MICE.summary = summary(pool(imp.OL.Mod))
 ###### Check Center Interactions/inclusion
 ##########################################
 
-center.inter.mod = polr(gestord~ center*(log(dde) + logPCB1 + log(triglycerides)  + maternal_age + smoking_status + log(cholesterol) + albuminTested + race), data = Long, Hess = T)
+center.inter.mod = polr(gestord~ center*log(dde) + center*logPCB1 + log(triglycerides)  + maternal_age + smoking_status + log(cholesterol) + albuminTested + race, data = Long, Hess = T)
 
 Center.Inter.Anova = anova(center.inter.mod, Long.Base.Mod)
 
@@ -182,6 +183,13 @@ chem.effect.summary = cbind(final.coef[c("log(dde)","logPCB1")], final.confint[c
 colnames(chem.effect.summary)[1] = "Coef Est"
 
 Long$logdde = log(Long$dde)
+
+Control.Mod = polr(gestord~ center + log(triglycerides)  + poly(maternal_age,2) + smoking_status + log(cholesterol) + albuminTested + race, data = Long, Hess = T)
+
+control.anova = anova(Control.Mod, Final.Mod)
+control.p = control.anova$`Pr(Chi)`
+
+
 ```
 
 # Case Discussion
@@ -225,13 +233,13 @@ Long %>%
 ----
 
 ```{r}
-ggplot(longnecker, aes(fill = gestational_cat, x = center)) + geom_bar()
+ggplot(Long, aes(fill = gestord, x = center)) + geom_bar()
 ```
 
 ----
 
 ```{r}
-ggplot(longnecker, aes(fill = race, x = gestational_cat)) + geom_bar()
+ggplot(Long, aes(fill = race, x = gestord)) + geom_bar()
 ```
 
 ----
@@ -285,16 +293,19 @@ barplot(height = MatAgeGestTable[,1] / 100, xlab = "Age Bucket", ylab = "Severel
 
 # Final Model
 
-\begin{align} GestCategory &\sim Center+log(dde)+logPCB1 \\ &+log(trigl.)+Poly(MaternalAge,2) \\&+Smoking+Log(Cholest.)+AlbuminTested\end{align} 
+\begin{align} GestCategory &\sim Center+log(dde)+logPCB1 \\ &+log(trigl.)+Poly(MaternalAge,2) \\&+Smoking+Log(Cholest.)+AlbuminTested + race\end{align} 
 
 # Results
 
-- (log) DDE and PCB both significantly associated with preterm delivery likelihood even when adjusting for other factors
+- (log) DDE and PCB are (collectively) significantly associated with preterm delivery likelihood even when adjusting for other factors
 - Interpretation that 1% increase in DDE is approximately associated with a `r round(final.coef["log(dde)"],2)`% change, and a unit increase in logPCB1 with a `r round(final.coef["logPCB1"],2)` change, in the log odds of of a gestational age occurrence below a given ordinal threshold.
   + Note for interpretability that the PCB coefficient is relative to the (standardized/centered) first principle component of the pcb_* measurements
+- Testing inclusion of both DDE and PCB vs control indicate (p=`r round(control.p[2],3)`) that they provide increased explanatory power vs control, but marginally in the full model each is just at the edge of significance, as seen in the following table:
+
+----
 
 ```{r}
-  print(as.data.frame(round(chem.effect.summary,3)))
+  knitr::kable(as.data.frame(round(chem.effect.summary,3)))
 ```
 
 ----
@@ -340,14 +351,6 @@ brant(test_mod)[1]
 
 ----
 
-- Control Variables of Significance:
-  + Center
-  + Triglycerides (g/dL)
-  + Cholesterol (g/dL)
-  + Maternal Age (years)
-  + Albumin (Testing Indicator)
-
-----
 
 # Sensitivity Analysis
 
