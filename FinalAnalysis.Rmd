@@ -64,8 +64,7 @@ longnecker <- longnecker_base %>%
   mutate(has_albumin = 1 * !is.na(albumin)) %>%
   mutate(center = as.character(center)) %>%
   mutate(gestational_cat = as.factor(ifelse(gestational_age <= 32, 1, 
-                                            ifelse(gestational_age <= 37 & gestational_age > 32, 2,
-                                                   ifelse(gestational_age > 37 & gestational_age <= 41, 3, 4)))))
+                                            ifelse(gestational_age <= 37 & gestational_age > 32, 2, 3))))
 
 # Log transform pcb_* after adding a small number to 0 values
 pcb_mat <- longnecker %>%
@@ -75,18 +74,18 @@ min_pcb <- min(pcb_mat[pcb_mat > 0])
 pcb_mat[pcb_mat == 0] <- min_pcb / 2
 pcb_mat <- apply(pcb_mat, 2, log)
 # Summarize pcb_* with PCA
-pcb_pca <- prcomp(pcb_mat, scale = TRUE)
+pcb_pca <- prcomp(pcb_mat, scale = TRUE, center = TRUE, retx = TRUE)
 # To see loading of each variable, uncomment the below:
 #pcb_pca$rotation[, 1] * (pcb_mat[1, ] - pcb_pca$center)/ pcb_pca$scale
 # To see variation explained by each PC, uncomment the below:
 # pcb_pca$sdev^2 # == > two PCs are enough
-pcb_comps <- pcb_mat %*% pcb_pca$rotation[, c(1,2)]
-longnecker["pcb_pca1"] <- pcb_comps[, 1]
-longnecker["pcb_pca2"] <- pcb_comps[, 2]
+longnecker["pcb_pca1"] <- pcb_pca$x[, 1]
+longnecker["pcb_pca2"] <-  pcb_pca$x[, 2]
 
 # Log transform these variables
 longnecker["log_dde"] <- log(longnecker$dde)
 longnecker["log_tri"] <- log(longnecker$triglycerides)
+longnecker["log_chol"] <- log(longnecker$cholesterol)
 ```
 
 ```{r, viz-collinear, message=FALSE}
@@ -129,13 +128,13 @@ ord_mod <- polr(gestational_cat ~ race +
                  has_albumin +
                  poly(maternal_age, 2)+ 
                  log_tri +
-                 cholesterol +
+                 log_chol +
                  smoking_status +
                  center, 
                data = longnecker,
                Hess=TRUE)
 p_ord <- pnorm(abs(coef(summary(ord_mod))[, "t value"]), lower.tail = FALSE) * 2
-cbind(summary(ord_mod)$coefficients, p_ord)
+cbind(summary(ord_mod)$coefficients, "p value" = p_ord)
 ```
 
 ```{r, diagnostics-linearity}
@@ -173,7 +172,7 @@ test_mod <- polr(gestational_cat ~ race +
                  has_albumin +
                  maternal_age + 
                  log_tri +
-                 cholesterol +
+                 log_chol +
                  smoking_status +
                  center, 
                data = longnecker,
@@ -221,7 +220,7 @@ for (cutoff in cutoffs) {
                  has_albumin +
                  poly(maternal_age, 2) + 
                  log_tri +
-                 cholesterol +
+                 log_chol +
                  smoking_status +
                  center, 
                data = longnecker_test,
