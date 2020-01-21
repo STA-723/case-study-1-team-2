@@ -351,12 +351,64 @@ brant(test_mod)[1]
 
 # Sensitivity Analysis
 
-![sensitive-count](sensitive_counts.jpeg)
+```{r, cached=TRUE}
+y <- Long$gestord
+n <- 100
+y_hat <- matrix(NA, nrow = length(y), ncol = n)
+for (i in 1:n) {
+  y_hat[, i] <- apply(probabilities, 1, function(x) {which(rmultinom(1, 1, x) == 1)})
+}
+
+# Distribution of count of each category in the simulated data
+count_severe <- apply(y_hat, 2, function(x) {sum(x == 1)})
+count_mild <- apply(y_hat, 2, function(x) {sum(x == 2)})
+count_normal <- apply(y_hat, 2, function(x) {sum(x == 3)})
+sens_data <- data.frame(severe_premature = count_severe, 
+                        premature = count_mild, 
+                        normal = count_normal) %>%
+  gather(key = "categories", value = "count")
+ggplot(sens_data, aes(x = count, fill = categories)) + 
+  geom_histogram(bins = 200) +
+  geom_vline(xintercept = table(y)[1], color = "red", size = 0.5) +
+  geom_vline(xintercept = table(y)[2], color = "red", size = 0.5) +
+  geom_vline(xintercept = table(y)[3], color = "red", size = 0.5) +
+  xlab("Number of cases")
+```
 
 ----
 
 # Sensitivity Analysis
 
-![sensitive-cutoff](sensitive_cutoffs.jpeg)
+```{r, cache=TRUE}
+ci_df <- data.frame()
+cutoffs <- list(c(32, 37), c(31, 36), c(33, 38), c(35, 37))
+for (cutoff in cutoffs) {
+  longnecker_test <- Long %>%
+    mutate(gestational_cat = as.factor(ifelse(gestational_age <= cutoff[1], 1, 
+                                       ifelse(gestational_age <= cutoff[2] & gestational_age > cutoff[1], 2, 3)))) %>% mutate(logDDE = log(dde), logTri = log(triglycerides), logChol = log(cholesterol))
+  test_mod <- polr(gestational_cat ~ race +
+                 logDDE + 
+                 logPCB1 +
+                 albuminTested +
+                 poly(maternal_age, 2) + 
+                 logTri +
+                 logChol +
+                 smoking_status +
+                 center, 
+               data = longnecker_test,
+               Hess=TRUE)
+  ci <- confint(test_mod)
+  df <- data.frame(ci) %>% rownames_to_column() %>% mutate(model = paste0(cutoff[1], "-", cutoff[2]))
+  ci_df <- rbind(ci_df, df)
+}
+pd <- position_dodge(0.2)   
+ci_df["mean"] <- (ci_df$X2.5.. + ci_df$X97.5..)/2
+ggplot(ci_df %>% filter(rowname %in% c("raceblack", "logDDE", 
+                                       "logPCB1", "albuminTested", 
+                                       "logTri", "logChol")), 
+       aes(y=mean, x=rowname, colour=model)) + 
+  geom_errorbar(aes(ymin=X2.5.., ymax=X97.5..), width=.2, position=pd) +
+  xlab("Variable") + ylab("95% CI")
+```
 
 
