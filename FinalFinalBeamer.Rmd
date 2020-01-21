@@ -257,12 +257,9 @@ barplot(height = MatAgeGestTable[,1] / 100, xlab = "Age Bucket", ylab = "Severel
   + Useful interpretation in terms of risk
   + Uses naturally ordinal structure
   + Differentiates between different severities
-- Keep obs with Gest. Age 44 or less
 - Impute score data with MICE to check usefulness
 - Remove obs with missing PCB value
 - Include blood cholesterol/triglyceride levels, as well as center and SES/Lifestyle metrics
-- As albumin his highly missing, include indicator for whether it was tested at all
-
 
 
 ----
@@ -290,10 +287,11 @@ barplot(height = MatAgeGestTable[,1] / 100, xlab = "Age Bucket", ylab = "Severel
   + Cholesterol (g/dL)
   + Maternal Age (years)
   + Albumin (Testing Indicator)
+  + Race
 
 # Final Model
 
-\begin{align} GestCategory &\sim Center+log(dde)+logPCB1 \\ &+log(trigl.)+Poly(MaternalAge,2) \\&+Smoking+Log(Cholest.)+AlbuminTested + race\end{align} 
+\begin{align} GestCategory &\sim Center+log(dde)+logPCB1 \\ &+log(trigl.)+Poly(MaternalAge,2) \\&+Smoking+log(Cholest.)+AlbuminTested \\  &+race\end{align} 
 
 # Results
 
@@ -307,6 +305,8 @@ barplot(height = MatAgeGestTable[,1] / 100, xlab = "Age Bucket", ylab = "Severel
 ```{r}
   knitr::kable(as.data.frame(round(chem.effect.summary,3)))
 ```
+
+- Note the overlap of the confidence intervals with 0.
 
 ----
 
@@ -329,24 +329,6 @@ Long %>%
   theme_bw() + 
   facet_grid(cols = vars(categories), rows = vars(predictors), scales = "free") +
   ggtitle("Fitted Probabilities vs DDE (ug/dL)/PCB (princ comp.)  (log scale)")
-```
-
-
-# Proportional Odds Assumption
-
-```{r, brant, warning=FALSE}
-library(brant)
-Long <- Long %>%
-  mutate(logDDE = log(dde), 
-         logTri = log(triglycerides), logChol = log(cholesterol))
-test_mod <- polr(gestord ~ 
-                   race +
-                   center + logDDE + logPCB1 + 
-                   logTri  + maternal_age + 
-                   smoking_status + logChol + albuminTested, 
-                 data = Long,
-                 Hess = T)
-brant(test_mod)[1]
 ```
 
 ----
