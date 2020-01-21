@@ -10,9 +10,6 @@ output: beamer_presentation
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
-```
-
-```{r, echo=FALSE, eval = TRUE, warning = FALSE, message = FALSE}
 library(tidyverse)
 library(mice)
 library(nnet)
@@ -23,7 +20,9 @@ library(knitr)
 library(tigerstats)
 library(ggplot2)
 set.seed(43)
+```
 
+```{r, echo=FALSE, eval = TRUE, warning = FALSE, message = FALSE, cache=TRUE}
 Long <- readRDS("Longnecker.rds")
 longnecker_b <- Long
 Long <- Long %>% mutate(albuminTested = ifelse(is.na(albumin), 0, 1)) %>% filter(gestational_age <= 44) %>% 
@@ -232,18 +231,6 @@ Long %>%
 
 ----
 
-```{r}
-ggplot(Long, aes(fill = gestord, x = center)) + geom_bar()
-```
-
-----
-
-```{r}
-ggplot(Long, aes(fill = race, x = gestord)) + geom_bar()
-```
-
-----
-
 ```{r, echo = FALSE}
 barplot(height = MatAgeGestTable[,1] / 100, xlab = "Age Bucket", ylab = "Severely Preterm Percentage",
         main = "Severely Preterm Probability vs Maternal Age")
@@ -301,8 +288,9 @@ barplot(height = MatAgeGestTable[,1] / 100, xlab = "Age Bucket", ylab = "Severel
 
 - Marginally in the full model each is at the edge of significance:
 <!-- - Note the overlap of the confidence intervals with 0. -->
+
 ```{r}
-knitr::kable(as.data.frame(round(chem.effect.summary,3)))
+knitr::kable(as.data.frame(round(1*chem.effect.summary, 3)))
 ```
 
 # Results
@@ -375,7 +363,7 @@ ggplot(sens_data, aes(x = count, fill = categories)) +
 
 # Sensitivity Analysis
 
-```{r, cache=TRUE}
+```{r, cache=TRUE, warning=FALSE, message=FALSE}
 ci_df <- data.frame()
 cutoffs <- list(c(32, 37), c(31, 36), c(33, 38), c(35, 37))
 for (cutoff in cutoffs) {
