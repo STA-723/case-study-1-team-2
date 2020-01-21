@@ -260,9 +260,9 @@ barplot(height = MatAgeGestTable[,1] / 100, xlab = "Age Bucket", ylab = "Severel
 - Impute score data with MICE to check usefulness
 - Remove obs with missing PCB value
 - Include blood cholesterol/triglyceride levels, as well as center and SES/Lifestyle metrics
+- Use PCA to handle the various PCA measures.
 
-
-----
+# Model Comparison F-Tests
 
 - Model Comparison indicated (p=`r round(PCA.anova[2,"Pr(Chi)"],2) `) that the first principle component of the pcb_* values is sufficient.
 - Indication (p=`r round(score.p.value, 2)`) against including Score Variables (post imputation)
@@ -276,7 +276,7 @@ barplot(height = MatAgeGestTable[,1] / 100, xlab = "Age Bucket", ylab = "Severel
 - Indication (p=`r round(Trig.Inter.Anova[2, "Pr(Chi)"],2) `) (weakly) against Triglyceride interaction with PCE/DDE
   + Hypothesized that there might be because of fat-solubility of the contaminants of interest
 - Indication (p=`r round(Age.Poly.Anova[2, "Pr(Chi)"],2) `) for inclusion of quadratic term in maternal age
-  + Makes sense given heightened birth risk at (relatively) yound and old ages of pregnancy (for possibly different reasons)
+  + Makes sense given above chart/intuition of increased risk at extremes of age.
 - Strong indication that the indicator of testing for Albumin is associated with longer gestational period on the margin
 
 ----
@@ -296,7 +296,7 @@ barplot(height = MatAgeGestTable[,1] / 100, xlab = "Age Bucket", ylab = "Severel
 # Results
 
 - (log) DDE and PCB are (collectively) significantly associated with preterm delivery likelihood even when adjusting for other factors
-- Interpretation that 1% increase in DDE is approximately associated with a `r round(final.coef["log(dde)"],2)`% change, and a unit increase in logPCB1 with a `r round(final.coef["logPCB1"],2)` change, in the log odds of of a gestational age occurrence below a given ordinal threshold.
+- Interpretation that 1% decrease in DDE is approximately associated with a `r round(final.coef["log(dde)"],2)`% change, and a unit increase in logPCB1 with a `r round(final.coef["logPCB1"],2)` change, in the log odds of of a gestational age occurrence above a given ordinal threshold.
   + Note for interpretability that the PCB coefficient is relative to the (standardized/centered) first principle component of the pcb_* measurements
 - Testing inclusion of both DDE and PCB vs control indicate (p=`r round(control.p[2],3)`) that they provide increased explanatory power vs control, but marginally in the full model each is just at the edge of significance, as seen in the following table:
 
