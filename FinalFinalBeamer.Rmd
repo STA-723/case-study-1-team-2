@@ -295,18 +295,29 @@ barplot(height = MatAgeGestTable[,1] / 100, xlab = "Age Bucket", ylab = "Severel
 
 # Results
 
-- (log) DDE and PCB are (collectively) significantly associated with preterm delivery likelihood even when adjusting for other factors
-- Interpretation that 1% decrease in DDE is approximately associated with a `r round(final.coef["log(dde)"],2)`% change, and a unit increase in logPCB1 with a `r round(final.coef["logPCB1"],2)` change, in the log odds of of a gestational age occurrence above a given ordinal threshold.
-  + Note for interpretability that the PCB coefficient is relative to the (standardized/centered) first principle component of the pcb_* measurements
-- Testing inclusion of both DDE and PCB vs control indicate (p=`r round(control.p[2],3)`) that they provide increased explanatory power vs control, but marginally in the full model each is just at the edge of significance, as seen in the following table:
+**Goal**: Assess how exposure to DDE and PCBs relates to the risk of premature delivery
 
-----
+- Testing inclusion of both DDE and PCB vs. control model (p=`r round(control.p[2],3)`)
 
+- Marginally in the full model each is at the edge of significance:
+<!-- - Note the overlap of the confidence intervals with 0. -->
 ```{r}
-  knitr::kable(as.data.frame(round(chem.effect.summary,3)))
+knitr::kable(as.data.frame(round(chem.effect.summary,3)))
 ```
 
-- Note the overlap of the confidence intervals with 0.
+# Results
+
+```{r}
+inter_table <- chem.effect.summary
+rownames(inter_table) <- c("DDE", "PCB1")
+knitr::kable(as.data.frame(round(1.1**inter_table,3)), caption = "Change in odds ratio for 10% increase in exposure")
+```
+
+- For 10% increase in DDE exposure, the odds of having more normal gestational age decreases by 1.7%.
+- For 10% increase in the first PC summary of PCBs, the odds of having more normal gestational age decreases by 0.5%.
+
+<!-- https://stats.idre.ucla.edu/r/dae/ordinal-logistic-regression/ -->
+<!-- https://stats.idre.ucla.edu/other/mult-pkg/faq/general/faqhow-do-i-interpret-a-regression-model-when-some-variables-are-log-transformed/ -->
 
 ----
 
@@ -323,7 +334,7 @@ Long %>%
   gather(key = "predictors", value = "predictor.value", 
          -severe_premature, -premature, -normal) %>%
   gather(key = "categories", value = "probability", -predictors, -predictor.value) %>%
-  ggplot(aes(probability, predictor.value))+
+  ggplot(aes(probability, predictor.value)) +
   geom_point(size = 0.5, alpha = 0.5) +
   geom_smooth(method = "loess") + 
   theme_bw() + 
