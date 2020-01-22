@@ -19,7 +19,16 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Section 2: Materials & Methods - describe the statistical approach/approaches used in the analysis, providing references as appropriate; do not present results in this section but just the methods used. You can carry out your analysis with multiple methods.
 
-In order to assess how exposure to DDE and PCBs relates to the risk of premature delivery we decided to investigate how well the concentration doses of DDE and PCBs predict premature delivery. We noticed that there are clinical categories for gestational age with gestational ages of less than 33 weeks corresponding to severely preterm births, gestational ages of less than 38 weeks corresponding to preterm births, and gestational ages of between 38 and 42 corresponding to normal term births. Considering that our interest is in the risk of premature delivery, we decided to disregard gestational ages of greater than 44 weeks which would have correspond to late term births. The structure of these categories lead us to conduct ordinal logistic regression. This method provides useful interpretatiion in terms of risk while using the naturally ordinal structure of the gestational age categories and differentiating between the severity of severly preterm births and preterm births. This structure also addresses the non-normality of the response. 
+In order to assess how exposure to DDE and PCBs relates to the risk of premature delivery we decided to investigate how well the concentration doses of DDE and PCBs predict premature delivery. We noticed that there are clinical categories for gestational age with gestational ages of less than 33 weeks corresponding to severely preterm births, gestational ages of less than 38 weeks corresponding to preterm births, and gestational ages of between 38 and greater corresponding to full- to late-term births. Owing to the relative implausibility of gestational terms exceeding 44 weeks and resulting high likelihood that such observations in the data are erroneous, we opted to exclude observations exceeding 44 weeks. The structure of these categories lead us to conduct ordinal logistic regression. This method provides useful interpretation in terms of risk while using the naturally ordinal structure of the gestational age categories and differentiating between the severity of severly preterm births and preterm births. This structure also addresses the non-normality of the response which is readily observable and impedes the use of standard linear regression. 
+
+The reasonable use ordinal logstic regression relies on several assumptions:
+
+- Ordered categorical response variable
+- Proportional odds
+- Lack of multi-collinearity
+- predictor variables at least one of which is categorical, ordinal, or continuous
+
+The first and fourth of these requirements are evidently satisfied. The non-multi-collinearity requirement is addressed by performing a PCA analysis of the pcb_* predictors, which are heavily related and exhibit relatively high correlations. The proportional odds assumption may be tested via the Brant test for which have obtained satisfactory results.
 
 - Ordinal Logistic Regression with Term, Preterm, and Severely Preterm Gest. Categories
   + Useful interpretation in terms of risk
@@ -47,6 +56,16 @@ library(tidyverse)
 library(mice)
 library(MASS)
 library(GGally)
+library(tidyverse)
+library(mice)
+library(nnet)
+library(corrplot)
+library(quantreg)
+library(MASS)
+library(knitr)
+library(tigerstats)
+library(ggplot2)
+set.seed(43)
 ```
 
 ```{r, clean-data}
@@ -236,6 +255,195 @@ ggplot(ci_df %>% filter(rowname %in% c("raceblack", "log_dde", "pcb_pca1", "has_
   geom_errorbar(aes(ymin=X2.5.., ymax=X97.5..), width=.2, position=pd)
 ```
 
+
+### Main Results
+
+<!-- JOSEPH CODE BELOW -->
+
+```{r, echo=FALSE, eval = TRUE, warning = FALSE, message = FALSE, cache=TRUE}
+Long <- readRDS("Longnecker.rds")
+longnecker_b <- Long
+Long <- Long %>% mutate(albuminTested = ifelse(is.na(albumin), 0, 1)) %>% filter(gestational_age <= 44) %>% 
+  filter(!is.na(pcb_028)) %>% dplyr::select(-albumin)
+
+
+Long = Long %>% mutate(termCat = cut(gestational_age, c(breaks = c(0, 32, 37 ,45))), center = as.character(center),
+                       pcb = pcb_028 + pcb_052 + pcb_074 + pcb_105 + pcb_118 + pcb_153 + pcb_170 +
+                            pcb_138 + pcb_180 + pcb_194 + pcb_203,
+                       # ed_norm = qnorm(score_education / 100),
+                       # inc_norm = qnorm(score_education / 100),
+                       # occ_norm = qnorm(score_occupation / 100),
+                       dde.cut = cut(dde, breaks = 5),
+                       pcb.cut = cut(pcb, breaks = 5),
+                       gestord = factor(termCat, ordered = TRUE)
+                       ) %>% filter(!is.na(pcb))
+
+
+# ADD PRINCIPLE COMPONENTs
+pcb_mat = as.matrix(Long %>% dplyr::select(contains("pcb_")))
+min_pcb <- min(pcb_mat[pcb_mat > 0])
+pcb_mat[pcb_mat == 0] <- min_pcb / 2
+pcb_mat <- apply(pcb_mat, 2, log)
+pcb.pr = prcomp(pcb_mat, center = T, scale = T)
+
+Long = Long %>% mutate(logPCB1 = -pcb.pr$x[,1], logPCB2 = pcb.pr$x[,2], logPCB3 = pcb.pr$x[,3])
+
+##
+
+# Long_Score_NA_rm = Long %>% filter(!is.na(score_education + score_occupation + score_income))
+# modordscore = polr(gestord ~ center + log(dde) + log(pcb) + score_education + score_occupation + score_education + log(triglycerides) + maternal_age + smoking_status + cholesterol + albuminTested, data = Long_Score_NA_rm)
+# modordscorecomp = polr(gestord~ center+log(dde) + log(pcb)+log(triglycerides) + maternal_age + smoking_status + cholesterol + albuminTested, data = Long_Score_NA_rm)
+# anova(modordscore, modordscorecomp)
+# 
+# modordcenter = polr(gestord~ center*log(dde) + center*log(pcb) + log(triglycerides) + maternal_age + smoking_status + cholesterol + albuminTested, data = Long)
+# modord = polr(gestord~ center+log(dde) + log(pcb)+log(triglycerides)  + maternal_age + smoking_status + cholesterol + albuminTested, data = Long)
+# summary(modord)
+# anova(modord, modordcenter)
+
+
+### BASE MODEL
+
+Long.Base.Mod = polr(gestord~ center + log(dde) + logPCB1 + log(triglycerides)  + maternal_age + smoking_status + log(cholesterol) + 
+                       albuminTested + race, data = Long,
+                     Hess = T)
+# summary(Long.Base.Mod)
+Base.Confint = confint(Long.Base.Mod)
+# Base.Confint
+# knitr::kable(Base.Confint, "latex")
+
+### PCA Analysis ###
+
+Long.PCA.1.2.3 = polr(gestord~ center + log(dde) + logPCB1 + logPCB2 + logPCB3 + log(triglycerides)  + maternal_age + smoking_status + log(cholesterol) + albuminTested + race, data = Long)
+
+
+# Long.PCA.logged = polr(gestord~ center + log(dde)*log(logPCB1) + log(triglycerides)  + maternal_age + smoking_status + cholesterol + albuminTested, data = Long)
+
+
+PCA.anova = anova(Long.Base.Mod, Long.PCA.1.2.3)
+
+## Second and third components add very little
+
+
+#############################################
+### MICE with ORDLOG - check score usefulness
+#############################################
+
+# impLong = mice(Long, printFlag = F)
+impLong = mice(Long %>% mutate(ldde = log(dde), ltrig = log(triglycerides), lchol = log(cholesterol)) %>% 
+                 dplyr::select(gestord,center, score_occupation, score_education, score_income, ldde, logPCB1,
+                                 ltrig, maternal_age, smoking_status, lchol,
+                                 albuminTested,race), printFlag = F)
+imp.OL.Mod = with(impLong, polr(gestord ~ center + score_occupation +score_education +
+                                  score_income + ldde + logPCB1 + 
+                                    ltrig  + maternal_age + smoking_status + 
+                                    lchol + albuminTested + race, Hess = T))
+
+imp.OL.Mod.wo.score = with(impLong, polr(gestord ~ center  + ldde + logPCB1 + 
+                                    ltrig  + maternal_age + smoking_status + 
+                                    lchol + albuminTested + race, Hess = T))
+
+score.p.value = pool.compare(imp.OL.Mod, imp.OL.Mod.wo.score)$pvalue
+
+MICE.summary = summary(pool(imp.OL.Mod))
+
+## Strong evidence that score does not add anything
+
+
+##########################################
+###### Check Center Interactions/inclusion
+##########################################
+
+center.inter.mod = polr(gestord~ center*log(dde) + center*logPCB1 + log(triglycerides)  + maternal_age + smoking_status + log(cholesterol) + albuminTested + race, data = Long, Hess = T)
+
+Center.Inter.Anova = anova(center.inter.mod, Long.Base.Mod)
+
+## Note that center interaction not significant
+
+no.center.mod = polr(gestord~ log(dde) + logPCB1 + log(triglycerides)  + 
+                       maternal_age + smoking_status + log(cholesterol) + albuminTested + race, data = Long, Hess = T)
+
+Center.Inclusion.Anova = anova(no.center.mod, Long.Base.Mod)
+
+# Strong evidence that including center is useful
+
+```
+
+```{r CHEM INTERACTIONS, echo=FALSE, eval = TRUE, warning = FALSE, message = FALSE, cache=TRUE}
+
+##########################################
+#### Check Chemical interactions
+##########################################
+
+
+## DDE PCA Interaction
+Long.PCA.DDE.Inter.Mod = polr(gestord~ center + log(dde) * logPCB1 + log(triglycerides)  + maternal_age + 
+                                smoking_status + log(cholesterol) + albuminTested + race, data = Long, Hess = T)
+
+DDE.PCA.Inter.Anova = anova(Long.Base.Mod, Long.PCA.DDE.Inter.Mod)
+
+# Not evidence that dde-pcb interact
+
+## DDE/PCA Triglyceride Interaction
+# Justified because these chemicals are fat-soluble.
+Long.Trig.Inter.Mod = polr(gestord~ center + log(dde)*log(triglycerides) + logPCB1*log(triglycerides)  + 
+                             maternal_age + smoking_status + log(cholesterol) + albuminTested + race, data = Long, Hess = T)
+
+Trig.Inter.Anova = anova(Long.Base.Mod, Long.Trig.Inter.Mod)
+
+```
+
+```{r MATERNAL AGE POLY, echo=FALSE, eval = TRUE, warning = FALSE, message = FALSE, cache=TRUE}
+
+##########################################
+#### check maternal age poly #############
+##########################################
+
+Long.Age.Poly.Mod = polr(gestord~ center + log(dde) + logPCB1 + log(triglycerides)  + poly(maternal_age,2) + smoking_status + log(cholesterol) + albuminTested + race, data = Long, Hess = T)
+
+
+Age.Poly.Anova = anova(Long.Base.Mod, Long.Age.Poly.Mod)
+
+
+Long$MatAgeCat = cut(Long$maternal_age, 4)
+
+MatAgeGestTable = rowPerc(xtabs(formula = ~ MatAgeCat + gestord, data = Long))
+# plot(MatAgeGestTable[,1], type = "l")
+# barplot(height = MatAgeGestTable[,1] / 100, xlab = "Age Bucket", ylab = "Severely Preterm Percentage", 
+#         main = "Severely Preterm Probability vs Maternal Age")
+## Conclude that the polynomial term is important.
+
+```
+
+```{r FINAL MODEL, echo=FALSE, eval = TRUE, warning = FALSE, message = FALSE, cache=TRUE}
+
+##########################################
+### FINAL MODEL ##########################
+##########################################
+
+
+Final.Mod = polr(gestord~ center + log(dde) + logPCB1 + log(triglycerides)  + poly(maternal_age,2) + smoking_status + log(cholesterol) + albuminTested + race, data = Long, Hess = T)
+
+final.coef = coef(Final.Mod)
+final.confint = confint(Final.Mod)
+
+chem.effect.summary = cbind(final.coef[c("log(dde)","logPCB1")], final.confint[c("log(dde)", "logPCB1"),])
+colnames(chem.effect.summary)[1] = "Coef Est"
+
+Long$logdde = log(Long$dde)
+
+Control.Mod = polr(gestord~ center + log(triglycerides)  + poly(maternal_age,2) + smoking_status + log(cholesterol) + albuminTested + race, data = Long, Hess = T)
+
+control.anova = anova(Control.Mod, Final.Mod)
+control.p = control.anova$`Pr(Chi)`
+
+### Brant test
+# require(brant)
+# mod.brant = brant(Final.Mod)
+# mod.brant
+
+```
+
+<!-- END JOSEPH CODE -->
 
 # Section 4: Discussion - comment on advantages and disadvantages of the approach taken and briefly discuss other approaches you could have taken instead.
 
