@@ -18,272 +18,45 @@ references:
   issued:
     year: 1990
     month: 12
+- id: who
+  title:  Preterm birth
+  URL: 'https://www.who.int/news-room/fact-sheets/detail/preterm-birth'
+  publisher: World Health Organization
+  page: 1171-1178
+  type: webpage
+  issued:
+    year: 2018
+    month: 2   
+- id: mccull1980
+  title: Models for Ordinal Data
+  author:
+  - family: McCullagh
+    given: Peter
+  container-title: Journal of the Royal Statistical Society
+  volume: 42
+  URL: 'https://www.jstor.org/stable/2984952'
+  publisher: Wiley
+  page: 109-142
+  type: article-journal
+  issued:
+    year: 1980
+    month: 2
+abstract: PLACEHOLDER TEXT FOR ABSTRACT. SEE HEADER YAML TO CHANGE
+
 ---
 
-```{r setup, include=FALSE}
+```{r setup, include=FALSE, warning = FALSE, message=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
 ```
 
-# Abstract/Summary - summarize the problem and the main findings of your project.
-
-# Section 1: Introduction - provide an initial description of the data, study in which it was collected and focus of the study/analysis/questions of interest.
-
-  The data used in this analysis is a subsample of the data collected in the National Collaborative Perinatal Project (CPP), a program which enrolled women during pregnancy and followed their pregnancy outcomes. The project collected demographic information such as race and maternal age as well as lifestyle factors such as smoking status. The subsample contains 2380 women and children for whom additional assaying of serum samples was perfromed and the concentration doses for DDE and PCBs was recorded. DDE and PCBs are of particular interest as they are breakdown products of pesticides that bioaccumulate in fatty deposits of organisms. The goal of this analysis is to assess how exposure to DDE and PCBs relates to the risk of premature delivery. 
-
-  Many of the variables in this study exhibit a variety of issues such as uncertainty, inflation, and missingness. Uncertainty is introduced into the variable gestational age as calculating the date of conception is not exact because it typically relies on the first day of the mother's last menstrual period. Assuming the mother did not miss any menstrual cycles, the date of conception could be incorrect by 11-21 days meaning that a gestational age of 47, normally considered highly unlikely, could atually represent a gestational age of 44, normally considered as a plausable late term gestation. There also seems to be some general mismanagement of data as gestational ages of 90 weeks appear in the data even though this is almost twice the length of the longest recorded pregnancy. We also see an inflation of zeros in the PCB variables due to the limitations of measurement equipment that, below a certain threshold, rounds values to zero. Missigness is most significantly present for the variable albumin for which less than 10% of women had their levels recorded. Since albumin can be an indicator of liver disease, kidney disease, and possibly gestational diabetes, the missigness might be due to the fact that only women who were perceived to be at risk were tested. In this case, the simple presence of being tested for albumin would likely be more significant than the actual values recorded.
-
-# Section 2: Materials & Methods - describe the statistical approach/approaches used in the analysis, providing references as appropriate; do not present results in this section but just the methods used. You can carry out your analysis with multiple methods.
-
-In order to assess how exposure to DDE and PCBs relates to the risk of premature delivery we decided to investigate how well the concentration doses of DDE and PCBs predict premature delivery. We noticed that there are clinical categories for gestational age with gestational ages of less than 33 weeks corresponding to severely preterm births, gestational ages of less than 38 weeks corresponding to preterm births, and gestational ages of between 38 and greater corresponding to full- to late-term births. Owing to the relative implausibility of gestational terms exceeding 44 weeks and resulting high likelihood that such observations in the data are erroneous, we opted to exclude observations exceeding 44 weeks. The structure of these categories lead us to conduct ordinal logistic regression. This method provides useful interpretation in terms of risk while using the naturally ordinal structure of the gestational age categories and differentiating between the severity of severly preterm births and preterm births. This structure also addresses the non-normality of the response which is readily observable and impedes the use of standard linear regression. 
-
-The reasonable use ordinal logstic regression relies on several assumptions:
-
-- Ordered categorical response variable
-- Proportional odds
-- Lack of multi-collinearity
-- predictor variables at least one of which is categorical, ordinal, or continuous
-
-The first and fourth of these requirements are evidently satisfied. The non-multi-collinearity requirement is addressed by performing a PCA analysis of the pcb_* predictors, which are heavily related and exhibit relatively high correlations. The proportional odds assumption may be tested via the Brant test for which we have obtained satisfactory results.
-
-We note that 
-
-<!-- FROM SLIDE SHOW BELOW -->
-
-- Ordinal Logistic Regression with Term, Preterm, and Severely Preterm Gest. Categories
-  + Useful interpretation in terms of risk
-  + Uses naturally ordinal structure
-  + Differentiates between different severities
-  + Addresses non-normality of response
-- Keep obs with Gest. Age 44 or less
-- Impute score data with MICE to check usefulness
-- Remove obs with missing PCE value
-- Include blood cholesterol/triglyceride levels, as well as center and SES/Lifestyle metrics
-
-
-
-# Section 3: Results - describe the results of the analysis approaches described in Section 2. It
-may be useful to break this into subsections, such as:
-– 3.1 Exploratory Data Analysis
-– 3.2 Main Results
-– 3.3 Sensitivity Analysis
-Make sure to very clearly address the questions of interest!
-
-### EDA
-
-```{r, library, message=FALSE, results=FALSE}
-library(tidyverse)
-library(mice)
-library(MASS)
-library(GGally)
-library(tidyverse)
-library(mice)
-library(nnet)
-library(corrplot)
-library(quantreg)
-library(MASS)
-library(knitr)
-library(tigerstats)
-library(ggplot2)
-set.seed(43)
-```
-
-```{r, clean-data}
-longnecker_base <- readRDS(file = "Longnecker.rds")
-
-# Keep gestational age less than 45
-# Remove 1 row of pcb_* with NA
-# Dichotomize gestational age into 4 categories
-# Create indicator of albumin
-# Change center to categorical
-gestational_age_cutoff <- 45
-longnecker <- longnecker_base %>%
-  filter(gestational_age < gestational_age_cutoff) %>%
-  filter(!is.na(pcb_028)) %>%
-  mutate(has_albumin = 1 * !is.na(albumin)) %>%
-  mutate(center = as.character(center)) %>%
-  mutate(gestational_cat = as.factor(ifelse(gestational_age <= 32, 1, 
-                                            ifelse(gestational_age <= 37 & gestational_age > 32, 2, 3))))
-
-# Log transform pcb_* after adding a small number to 0 values
-pcb_mat <- longnecker %>%
-                    dplyr::select(contains("pcb")) %>%
-                    data.matrix()
-min_pcb <- min(pcb_mat[pcb_mat > 0])
-pcb_mat[pcb_mat == 0] <- min_pcb / 2
-pcb_mat <- apply(pcb_mat, 2, log)
-# Summarize pcb_* with PCA
-pcb_pca <- prcomp(pcb_mat, scale = TRUE, center = TRUE, retx = TRUE)
-# To see loading of each variable, uncomment the below:
-#pcb_pca$rotation[, 1] * (pcb_mat[1, ] - pcb_pca$center)/ pcb_pca$scale
-# To see variation explained by each PC, uncomment the below:
-# pcb_pca$sdev^2 # == > two PCs are enough
-longnecker["pcb_pca1"] <- pcb_pca$x[, 1]
-longnecker["pcb_pca2"] <-  pcb_pca$x[, 2]
-
-# Log transform these variables
-longnecker["log_dde"] <- log(longnecker$dde)
-longnecker["log_tri"] <- log(longnecker$triglycerides)
-longnecker["log_chol"] <- log(longnecker$cholesterol)
-```
-
-```{r, viz-collinear, message=FALSE}
-ggpairs(longnecker %>% dplyr::select(gestational_cat, log_dde, pcb_pca1, log_tri, cholesterol, maternal_age))
-```
-
-```{r}
-ggplot(longnecker, aes(x = gestational_age)) + geom_histogram(bins = 15)
-ggplot(longnecker, aes(x = gestational_cat)) + geom_bar()
-ggplot(longnecker, aes(fill = race, x = gestational_cat)) + geom_bar()
-ggplot(longnecker, aes(x = dde)) + geom_histogram()
-longnecker %>%
-  dplyr::select(pcb_170, pcb_138, pcb_203) %>%
-  gather(key = "var", value = "val") %>%
-  ggplot(aes(x = val)) + geom_histogram(bins=30) + facet_wrap(~var)
-ggplot(longnecker, aes(x = pcb_pca1)) + geom_histogram()
-ggplot(longnecker, aes(y = pcb_pca1, x = gestational_cat)) + geom_boxplot()
-ggplot(longnecker, aes(y = triglycerides, x = gestational_cat)) + geom_boxplot()
-ggplot(longnecker, aes(y = cholesterol, x = gestational_cat)) + geom_boxplot()
-ggplot(longnecker, aes(y = triglycerides, x = gestational_age)) + geom_point()
-ggplot(longnecker, aes(y = cholesterol, x = gestational_age)) + geom_point()
-ggplot(longnecker, aes(fill = as.factor(smoking_status), x = gestational_cat)) + geom_bar()
-ggplot(longnecker, aes(fill = gestational_cat, x = center)) + geom_bar()
-longnecker %>%
-  dplyr::select(contains("score"), gestational_cat) %>%
-  gather(key = "variable", value = "value", - gestational_cat) %>%
-  ggplot(aes(colour = gestational_cat, y = value, x = variable)) + geom_boxplot()
-ggplot(longnecker, aes(x = gestational_cat, y = maternal_age)) + geom_boxplot()
-longnecker %>%
-  mutate(has_albumin = as.factor(has_albumin)) %>%
-  ggplot(aes(y = gestational_age, x = has_albumin)) + geom_boxplot()
-```
-
-### Ordinal Logistic Regression
-
-```{r, ord}
-ord_mod <- polr(gestational_cat ~ race +
-                 log_dde + 
-                 pcb_pca1 +
-                 has_albumin +
-                 poly(maternal_age, 2)+ 
-                 log_tri +
-                 log_chol +
-                 smoking_status +
-                 center, 
-               data = longnecker,
-               Hess=TRUE)
-p_ord <- pnorm(abs(coef(summary(ord_mod))[, "t value"]), lower.tail = FALSE) * 2
-cbind(summary(ord_mod)$coefficients, "p value" = p_ord)
-```
-
-```{r, diagnostics-linearity}
-# Tutorial from http://www.sthda.com/english/articles/36-classification-methods-essentials/148-logistic-regression-assumptions-and-diagnostics-in-r/
-probabilities <- predict(ord_mod, type = "probs")
-predictors <- c("log_dde", 
-                 "pcb_pca1",
-                 "log_tri",
-                 "cholesterol",
-                 "severe_premature", "premature", "normal"
-                )
-longnecker %>%
-  mutate(severe_premature = log(probabilities[, 1]/(1-probabilities[, 1])),
-         premature = log(probabilities[, 2]/(1-probabilities[, 2])),
-         normal = log(probabilities[, 3]/(1-probabilities[, 3]))
-         ) %>%
-  dplyr::select(predictors) %>%
-  gather(key = "predictors", value = "predictor.value", 
-         -severe_premature, -premature, -normal) %>%
-  gather(key = "categories", value = "logit.value", -predictors, -predictor.value) %>%
-  ggplot(aes(logit.value, predictor.value))+
-  geom_point(size = 0.5, alpha = 0.5) +
-  geom_smooth(method = "loess") + 
-  theme_bw() + 
-  facet_grid(cols = vars(categories), rows = vars(predictors), scales = "free")
-```
-
-We use package `brant` to test the proportional odds assumption via the Brant Test (@brant1990) (from this post here: https://medium.com/evangelinelee/brant-test-for-proportional-odds-in-r-b0b373a93aa2). The assumption holds at the 0.05 level.
-
-```{r, diagnostics-prop-odds, }
-library(brant)
-test_mod <- polr(gestational_cat ~ race +
-                 log_dde + 
-                 pcb_pca1 +
-                 has_albumin +
-                 maternal_age + 
-                 log_tri +
-                 log_chol +
-                 smoking_status +
-                 center, 
-               data = longnecker,
-               Hess=TRUE)
-brant(test_mod)
-```
-
-### Sensitivity Analysis
-
-```{r, sensitivity-count, cache=TRUE}
-  y <- longnecker$gestational_cat
-  n <- 200
-  y_hat <- matrix(NA, nrow = length(y), ncol = n)
-  for (i in 1:n) {
-    y_hat[, i] <- apply(probabilities, 1, function(x) {which(rmultinom(1, 1, x) == 1)})
-  }
-  
-  # Distribution of count of each category in the simulated data
-  count_severe <- apply(y_hat, 2, function(x) {sum(x == 1)})
-  count_mild <- apply(y_hat, 2, function(x) {sum(x == 2)})
-  count_normal <- apply(y_hat, 2, function(x) {sum(x == 3)})
-  sens_data <- data.frame(severe = count_severe, mild = count_mild, normal = count_normal) %>%
-    gather(key = "categories", value = "count")
-  ggplot(sens_data, aes(x = count, fill = categories)) + 
-    geom_histogram(bins = 200) +
-    geom_vline(xintercept = table(y)[1], color = "red", size = 0.5) +
-    geom_vline(xintercept = table(y)[2], color = "red", size = 0.5) +
-    geom_vline(xintercept = table(y)[3], color = "red", size = 0.5)
-```
-
-
-```{r, sensitivity-cutoff, cache=TRUE}
-ci <- confint(ord_mod)
-ci_df <- data.frame(ci) %>%
-  rownames_to_column() %>%
-  mutate(model = "32-37 (main)")
-cutoffs <- list(c(31, 36), c(33, 38), c(31, 38))
-for (cutoff in cutoffs) {
-  longnecker_test <- longnecker %>%
-    mutate(gestational_cat = as.factor(ifelse(gestational_age <= cutoff[1], 1, 
-                                       ifelse(gestational_age <= cutoff[2] & gestational_age > cutoff[1], 2, 3))))
-  test_mod <- polr(gestational_cat ~ race +
-                 log_dde + 
-                 pcb_pca1 +
-                 has_albumin +
-                 poly(maternal_age, 2) + 
-                 log_tri +
-                 log_chol +
-                 smoking_status +
-                 center, 
-               data = longnecker_test,
-               Hess=TRUE)
-  ci <- confint(test_mod)
-  df <- data.frame(ci) %>% rownames_to_column() %>% mutate(model = paste0(cutoff[1], "-", cutoff[2]))
-  ci_df <- rbind(ci_df, df)
-}
-pd <- position_dodge(0.2)
-ci_df["mean"] <- (ci_df$X2.5.. + ci_df$X97.5..)/2
-ggplot(ci_df %>% filter(rowname %in% c("raceblack", "log_dde", "pcb_pca1", "has_albumin", "log_tri", "log_chol")), 
-       aes(y=mean, x=rowname, colour=model)) + 
-  geom_errorbar(aes(ymin=X2.5.., ymax=X97.5..), width=.2, position=pd)
-```
-
-
-### Main Results
-
-<!-- JOSEPH CODE BELOW -->
+<!-- JOSEPH COMPUTATIONAL CODE BELOW -->
 
 ```{r, echo=FALSE, eval = TRUE, warning = FALSE, message = FALSE, cache=TRUE}
 Long <- readRDS("Longnecker.rds")
 longnecker_b <- Long
 Long <- Long %>% mutate(albuminTested = ifelse(is.na(albumin), 0, 1)) %>% filter(gestational_age <= 44) %>% 
   filter(!is.na(pcb_028)) %>% dplyr::select(-albumin)
+
 
 
 Long = Long %>% mutate(termCat = cut(gestational_age, c(breaks = c(0, 32, 37 ,45))), center = as.character(center),
@@ -482,12 +255,288 @@ control.p = control.anova$`Pr(Chi)`
 
 <!-- END JOSEPH CODE -->
 
+<!-- ## Abstract/Summary - summarize the problem and the main findings of your project. -->
+
+<!-- ## Section 1: Introduction - provide an initial description of the data, study in which it was collected and focus of the study/analysis/questions of interest. -->
+
+## Introduction
+
+  The data used in this analysis is a subsample of the data collected in the National Collaborative Perinatal Project (CPP), a program which enrolled women during pregnancy and followed their pregnancy outcomes. The project collected demographic information such as race and maternal age as well as lifestyle factors such as smoking status. The subsample contains 2380 women and children for whom additional assaying of serum samples was perfromed and the concentration doses for DDE and PCBs was recorded. DDE and PCBs are of particular interest as they are breakdown products of pesticides that bioaccumulate in fatty deposits of organisms. The goal of this analysis is to assess how exposure to DDE and PCBs relates to the risk of premature delivery. 
+
+  Many of the variables in this study exhibit a variety of issues such as uncertainty, inflation, and missingness. Uncertainty is introduced into the variable gestational age as calculating the date of conception is not exact because it typically relies on the first day of the mother's last menstrual period. Assuming the mother did not miss any menstrual cycles, the date of conception could be incorrect by 11-21 days meaning that a gestational age of 47, normally considered highly unlikely, could atually represent a gestational age of 44, normally considered as a plausable late term gestation. There also seems to be some general mismanagement of data as gestational ages of 90 weeks appear in the data even though this is almost twice the length of the longest recorded pregnancy. We also see an inflation of zeros in the PCB variables due to the limitations of measurement equipment that, below a certain threshold, rounds values to zero. Missigness is most significantly present for the variable albumin for which less than 10% of women had their levels recorded. Since albumin can be an indicator of liver disease, kidney disease, and possibly gestational diabetes, the missigness might be due to the fact that only women who were perceived to be at risk were tested. In this case, the simple presence of being tested for albumin would likely be more significant than the actual values recorded.
+
+<!-- # Section 2: Materials & Methods - describe the statistical approach/approaches used in the analysis, providing references as appropriate; do not present results in this section but just the methods used. You can carry out your analysis with multiple methods. -->
+
+## Materials & Methods
+
+In order to assess how exposure to DDE and PCBs relates to the risk of premature delivery we decided to investigate how well the concentration doses of DDE and PCBs predict premature delivery. We noticed that there are clinical categories for gestational age with gestational ages of less than 33 weeks corresponding to severely preterm births, gestational ages of less than 38 weeks corresponding to preterm births, and gestational ages of between 38 and greater corresponding to full- to late-term births, which correspond to guidelines provided by the World Health Organization [@who]. Owing to the relative implausibility of gestational terms exceeding 44 weeks and resulting high likelihood that such observations in the data are erroneous, we opted to exclude observations exceeding 44 weeks. Because the distribution of gestational periods appears to be reasonably symmetric when keeping these large observations, it is possible that the entire distribution has been shifted to the right owing to some bias in gestational age data collection. This is speculative and thus we do not wish to make sweeping changes of on this basis. The natural and ordinal categorization of gestational age leads us to employ categorical logistic regression as our modeling method. This method provides useful interpretation in terms of risk and probability of pre-term birth while using the naturally ordinal structure of the gestational age categories and differentiating between the severity of severely pre-term births and moderately pre-term births. This structure also addresses the non-normality of the response which is readily observable and impedes the use of standard linear regression. The model has the following structural form:
+
+$$ logit(Y_i\leq j) = \alpha_j - \beta^T X_i $$
+From which pme derives:
+
+$$ P(Y_i\leq j) = \frac{e^{\alpha_j - \beta^T X_i}}{1+e^{\alpha_j-\beta^T X_i}} $$
+
+
+
+In the above, $Y_i$ is the response category, $j$ is some possible level of $Y_i$, $\alpha_j$, is a constant associated with level $j$, $\beta$ is a vector of coefficients shared across all levels, and $X_i$ is the vector of predictors for the $i^{th}$ observation. Note that unlike multinomial regression, in which one obtains $P(Y_i = j)$, we have an inequality instead. 
+
+
+
+The reasonable use ordinal logstic regression relies on several assumptions:
+
+- Ordered categorical response variable
+- Proportional odds
+- Lack of multi-collinearity
+- predictor variables at least one of which is categorical, ordinal, or continuous
+
+The first and fourth of these requirements are evidently satisfied. The non-multi-collinearity requirement is addressed by performing a PCA analysis of the pcb_* predictors, which are heavily related and exhibit relatively high correlations. The proportional odds assumption may be tested via the Brant test for which we have obtained satisfactory results.
+
+We note that is a high degree of missingness for certain predictors, such as the "Score" variables. We use the MICE package in R to impute these missing data points. MICE generates multiple imputed datasets, as imputation is a random process.
+
+<!-- FROM SLIDE SHOW BELOW -->
+
+- Ordinal Logistic Regression with Term, Preterm, and Severely Preterm Gest. Categories
+  + Useful interpretation in terms of risk
+  + Uses naturally ordinal structure
+  + Differentiates between different severities
+  + Addresses non-normality of response
+- Keep obs with Gest. Age 44 or less
+- Impute score data with MICE to check usefulness
+- Remove obs with missing PCE value
+- Include blood cholesterol/triglyceride levels, as well as center and SES/Lifestyle metrics
+
+
+
+## Section 3: Results - describe the results of the analysis approaches described in Section 2. It
+may be useful to break this into subsections, such as:
+– 3.1 Exploratory Data Analysis
+– 3.2 Main Results
+– 3.3 Sensitivity Analysis
+Make sure to very clearly address the questions of interest!
+
+# EDA
+
+```{r, library, message=FALSE, results=FALSE}
+library(tidyverse)
+library(mice)
+library(MASS)
+library(GGally)
+library(tidyverse)
+library(mice)
+library(nnet)
+library(corrplot)
+library(quantreg)
+library(MASS)
+library(knitr)
+library(tigerstats)
+library(ggplot2)
+set.seed(43)
+```
+
+```{r, clean-data}
+longnecker_base <- readRDS(file = "Longnecker.rds")
+
+# Keep gestational age less than 45
+# Remove 1 row of pcb_* with NA
+# Dichotomize gestational age into 4 categories
+# Create indicator of albumin
+# Change center to categorical
+gestational_age_cutoff <- 45
+longnecker <- longnecker_base %>%
+  filter(gestational_age < gestational_age_cutoff) %>%
+  filter(!is.na(pcb_028)) %>%
+  mutate(has_albumin = 1 * !is.na(albumin)) %>%
+  mutate(center = as.character(center)) %>%
+  mutate(gestational_cat = as.factor(ifelse(gestational_age <= 32, 1, 
+                                            ifelse(gestational_age <= 37 & gestational_age > 32, 2, 3))))
+
+# Log transform pcb_* after adding a small number to 0 values
+pcb_mat <- longnecker %>%
+                    dplyr::select(contains("pcb")) %>%
+                    data.matrix()
+min_pcb <- min(pcb_mat[pcb_mat > 0])
+pcb_mat[pcb_mat == 0] <- min_pcb / 2
+pcb_mat <- apply(pcb_mat, 2, log)
+# Summarize pcb_* with PCA
+pcb_pca <- prcomp(pcb_mat, scale = TRUE, center = TRUE, retx = TRUE)
+# To see loading of each variable, uncomment the below:
+#pcb_pca$rotation[, 1] * (pcb_mat[1, ] - pcb_pca$center)/ pcb_pca$scale
+# To see variation explained by each PC, uncomment the below:
+# pcb_pca$sdev^2 # == > two PCs are enough
+longnecker["pcb_pca1"] <- pcb_pca$x[, 1]
+longnecker["pcb_pca2"] <-  pcb_pca$x[, 2]
+
+# Log transform these variables
+longnecker["log_dde"] <- log(longnecker$dde)
+longnecker["log_tri"] <- log(longnecker$triglycerides)
+longnecker["log_chol"] <- log(longnecker$cholesterol)
+```
+
+```{r, viz-collinear, message=FALSE}
+ggpairs(longnecker %>% dplyr::select(gestational_cat, log_dde, pcb_pca1, log_tri, cholesterol, maternal_age))
+```
+
+```{r}
+ggplot(longnecker, aes(x = gestational_age)) + geom_histogram(bins = 15)
+ggplot(longnecker, aes(x = gestational_cat)) + geom_bar()
+ggplot(longnecker, aes(fill = race, x = gestational_cat)) + geom_bar()
+ggplot(longnecker, aes(x = dde)) + geom_histogram()
+longnecker %>%
+  dplyr::select(pcb_170, pcb_138, pcb_203) %>%
+  gather(key = "var", value = "val") %>%
+  ggplot(aes(x = val)) + geom_histogram(bins=30) + facet_wrap(~var)
+ggplot(longnecker, aes(x = pcb_pca1)) + geom_histogram()
+ggplot(longnecker, aes(y = pcb_pca1, x = gestational_cat)) + geom_boxplot()
+ggplot(longnecker, aes(y = triglycerides, x = gestational_cat)) + geom_boxplot()
+ggplot(longnecker, aes(y = cholesterol, x = gestational_cat)) + geom_boxplot()
+ggplot(longnecker, aes(y = triglycerides, x = gestational_age)) + geom_point()
+ggplot(longnecker, aes(y = cholesterol, x = gestational_age)) + geom_point()
+ggplot(longnecker, aes(fill = as.factor(smoking_status), x = gestational_cat)) + geom_bar()
+ggplot(longnecker, aes(fill = gestational_cat, x = center)) + geom_bar()
+longnecker %>%
+  dplyr::select(contains("score"), gestational_cat) %>%
+  gather(key = "variable", value = "value", - gestational_cat) %>%
+  ggplot(aes(colour = gestational_cat, y = value, x = variable)) + geom_boxplot()
+ggplot(longnecker, aes(x = gestational_cat, y = maternal_age)) + geom_boxplot()
+longnecker %>%
+  mutate(has_albumin = as.factor(has_albumin)) %>%
+  ggplot(aes(y = gestational_age, x = has_albumin)) + geom_boxplot()
+```
+
+### Ordinal Logistic Regression
+
+```{r, ord}
+ord_mod <- polr(gestational_cat ~ race +
+                 log_dde + 
+                 pcb_pca1 +
+                 has_albumin +
+                 poly(maternal_age, 2)+ 
+                 log_tri +
+                 log_chol +
+                 smoking_status +
+                 center, 
+               data = longnecker,
+               Hess=TRUE)
+p_ord <- pnorm(abs(coef(summary(ord_mod))[, "t value"]), lower.tail = FALSE) * 2
+cbind(summary(ord_mod)$coefficients, "p value" = p_ord)
+```
+
+```{r, diagnostics-linearity}
+# Tutorial from http://www.sthda.com/english/articles/36-classification-methods-essentials/148-logistic-regression-assumptions-and-diagnostics-in-r/
+probabilities <- predict(ord_mod, type = "probs")
+predictors <- c("log_dde", 
+                 "pcb_pca1",
+                 "log_tri",
+                 "cholesterol",
+                 "severe_premature", "premature", "normal"
+                )
+longnecker %>%
+  mutate(severe_premature = log(probabilities[, 1]/(1-probabilities[, 1])),
+         premature = log(probabilities[, 2]/(1-probabilities[, 2])),
+         normal = log(probabilities[, 3]/(1-probabilities[, 3]))
+         ) %>%
+  dplyr::select(predictors) %>%
+  gather(key = "predictors", value = "predictor.value", 
+         -severe_premature, -premature, -normal) %>%
+  gather(key = "categories", value = "logit.value", -predictors, -predictor.value) %>%
+  ggplot(aes(logit.value, predictor.value))+
+  geom_point(size = 0.5, alpha = 0.5) +
+  geom_smooth(method = "loess") + 
+  theme_bw() + 
+  facet_grid(cols = vars(categories), rows = vars(predictors), scales = "free")
+```
+
+We use package `brant` to test the proportional odds assumption via the Brant Test [@brant1990] 
+
+<!-- JUST A BLOG POST: (from this post here: https://medium.com/evangelinelee/brant-test-for-proportional-odds-in-r-b0b373a93aa2).  -->
+
+The assumption holds at the 0.05 level.
+
+```{r, diagnostics-prop-odds, }
+library(brant)
+test_mod <- polr(gestational_cat ~ race +
+                 log_dde + 
+                 pcb_pca1 +
+                 has_albumin +
+                 maternal_age + 
+                 log_tri +
+                 log_chol +
+                 smoking_status +
+                 center, 
+               data = longnecker,
+               Hess=TRUE)
+brant(test_mod)
+```
+
+# Sensitivity Analysis
+
+```{r, sensitivity-count, cache=TRUE}
+  y <- longnecker$gestational_cat
+  n <- 200
+  y_hat <- matrix(NA, nrow = length(y), ncol = n)
+  for (i in 1:n) {
+    y_hat[, i] <- apply(probabilities, 1, function(x) {which(rmultinom(1, 1, x) == 1)})
+  }
+  
+  # Distribution of count of each category in the simulated data
+  count_severe <- apply(y_hat, 2, function(x) {sum(x == 1)})
+  count_mild <- apply(y_hat, 2, function(x) {sum(x == 2)})
+  count_normal <- apply(y_hat, 2, function(x) {sum(x == 3)})
+  sens_data <- data.frame(severe = count_severe, mild = count_mild, normal = count_normal) %>%
+    gather(key = "categories", value = "count")
+  ggplot(sens_data, aes(x = count, fill = categories)) + 
+    geom_histogram(bins = 200) +
+    geom_vline(xintercept = table(y)[1], color = "red", size = 0.5) +
+    geom_vline(xintercept = table(y)[2], color = "red", size = 0.5) +
+    geom_vline(xintercept = table(y)[3], color = "red", size = 0.5)
+```
+
+
+```{r, sensitivity-cutoff, cache=TRUE}
+ci <- confint(ord_mod)
+ci_df <- data.frame(ci) %>%
+  rownames_to_column() %>%
+  mutate(model = "32-37 (main)")
+cutoffs <- list(c(31, 36), c(33, 38), c(31, 38))
+for (cutoff in cutoffs) {
+  longnecker_test <- longnecker %>%
+    mutate(gestational_cat = as.factor(ifelse(gestational_age <= cutoff[1], 1, 
+                                       ifelse(gestational_age <= cutoff[2] & gestational_age > cutoff[1], 2, 3))))
+  test_mod <- polr(gestational_cat ~ race +
+                 log_dde + 
+                 pcb_pca1 +
+                 has_albumin +
+                 poly(maternal_age, 2) + 
+                 log_tri +
+                 log_chol +
+                 smoking_status +
+                 center, 
+               data = longnecker_test,
+               Hess=TRUE)
+  ci <- confint(test_mod)
+  df <- data.frame(ci) %>% rownames_to_column() %>% mutate(model = paste0(cutoff[1], "-", cutoff[2]))
+  ci_df <- rbind(ci_df, df)
+}
+pd <- position_dodge(0.2)
+ci_df["mean"] <- (ci_df$X2.5.. + ci_df$X97.5..)/2
+ggplot(ci_df %>% filter(rowname %in% c("raceblack", "log_dde", "pcb_pca1", "has_albumin", "log_tri", "log_chol")), 
+       aes(y=mean, x=rowname, colour=model)) + 
+  geom_errorbar(aes(ymin=X2.5.., ymax=X97.5..), width=.2, position=pd)
+```
+
+
+# Main Results
+
+
+
 # Section 4: Discussion - comment on advantages and disadvantages of the approach taken and briefly discuss other approaches you could have taken instead.
 
-A key advantage of this approach is that its interpretation is naturally suited to the problem at hand. Our goal is to assess risks of pre-term delivery resulting from differing blood levels of certain chemicals, namely dde and pcb_*'s, while also differentiating among varying levels of severity of such pre-term births. An ordinal logistic regression model provides probability of response accross various, categories of gestational delivery age, taking into account different severities, while also incorporating the natural ordinality of the different gestational categories. One disadvantage of this model is a relatively stringent structural assumption, namely that of proportional odds. Briefly, thr proportional odds assumption requires that the odds of occupying each category or lower, so the odds of $(,A]$, $(,B]$, $(,C]$, etc, are proportional across the range of predictors in the model. This is a relatively difficult requirement to proof conclusively, though the Brant test, which we have employed, is able to provide support for the assumption. Another disadvantage is the necessity of choosing particular cut points to represent our gestational categories. In one sense, the existence of certain natural cut points in fetal development, as provided by various reputable organizations as WHO, may make this type of categorization seem sensible. On the other hand, categorizing continuous data will always possess a degree of arbitrarity, and it may risk masking different dynamics contained within categories or across categories. An alternative modeling framework which may have been of use is quantile regression. Quantile regression, which remarkably few assumptions, provides an estimation of a given quantile of the response variable as a linear function of predictor variables. One can then fit this model across a range of quantiles to obtain a sense of how the overall distribution of the response changes over the predictor space. This could allow one to identify that, hypothetically, the 20th or 10th quantile of gestational age tends to decrease with increasing DDE concentration, even if the median or higher quantiles are little affected, allowing one to assess the presence of increasing downside risk in the form of longer tails. This also seems promising as a means of answering the question of interest. This method can easily handle to non-normality of our response variable, and it also provides a sense changing likelihood of pre-term births while also differentiating among different levels of severity. It does strike us, however, that there may be some increased difficulty in interpretability, as the true question of interest seems closer to assessing the likelihood of gestational age falling below a given level, as opposed to estimating a given quantile of gestational age. 
+A key advantage of this approach is that its interpretation is naturally suited to the problem at hand. Our goal is to assess risks of pre-term delivery resulting from differing blood levels of certain chemicals, namely dde and pcb_*'s, while also differentiating among varying levels of severity of such pre-term births. An ordinal logistic regression model provides probability of response accross various, categories of gestational delivery age, taking into account different severities, while also incorporating the natural ordinality of the different gestational categories. One disadvantage of this model is a relatively stringent structural assumption, namely that of proportional odds. This is a relatively difficult requirement to proof conclusively, though the Brant test, which we have employed, is able to provide support for the assumption. Another disadvantage is the necessity of choosing particular cut points to represent our gestational categories. In one sense, the existence of certain natural cut points in fetal development, as provided by various reputable organizations as WHO, may make this type of categorization seem sensible. On the other hand, categorizing continuous data will always possess a degree of arbitrarity, and it may risk masking different dynamics contained within categories or across categories. An alternative modeling framework which may have been of use is quantile regression. Quantile regression, which remarkably few assumptions, provides an estimation of a given quantile of the response variable as a linear function of predictor variables. One can then fit this model across a range of quantiles to obtain a sense of how the overall distribution of the response changes over the predictor space. This could allow one to identify that, hypothetically, the 20th or 10th quantile of gestational age tends to decrease with increasing DDE concentration, even if the median or higher quantiles are little affected, allowing one to assess the presence of increasing downside risk in the form of longer tails. This also seems promising as a means of answering the question of interest. This method can easily handle to non-normality of our response variable, and it also provides a sense changing likelihood of pre-term births while also differentiating among different levels of severity. It does strike us, however, that there may be some increased difficulty in interpretability, as the true question of interest seems closer to assessing the likelihood of gestational age falling below a given level, as opposed to estimating a given quantile of gestational age. 
 
 
-# Appendix - contains any necessary technical and other material that would be good to include but may make the main part difficult to read, particularly for a non-specialist/scientist. Sections 1-4 should be as accessible as possible to a non-statistician scientist/researcher in the relevant area & should be written in a clear/concise manner.
+<!-- # Appendix - contains any necessary technical and other material that would be good to include but may make the main part difficult to read, particularly for a non-specialist/scientist. Sections 1-4 should be as accessible as possible to a non-statistician scientist/researcher in the relevant area & should be written in a clear/concise manner. -->
+
+
 
 # Citations
 cut offs
