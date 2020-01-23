@@ -2,10 +2,10 @@
 title: "Final Report"
 author: "Phuc Nguyen, Joseph Lawson, Emily Gentles"
 date: "1/23/2020"
-output: 
-  pdf_document:
-    fig_caption: yes
+output: bookdown::pdf_document2
+toc: false
 geometry: margin=0.75in
+fig_caption: yes
 references:
 - id: brant1990
   title:  Assessing Proportionality in the Proportional Odds Model for Ordinal Logistic Regression
@@ -46,10 +46,12 @@ references:
     month: 2
 abstract: PLACEHOLDER TEXT FOR ABSTRACT. SEE HEADER YAML TO CHANGE
 
+header-includes:
+    \usepackage{float}
 ---
 
 ```{r setup, include=FALSE, warning = FALSE, message=FALSE}
-knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE,fig.pos = 'h')
 ```
 
 ```{r, library, message=FALSE, results=FALSE, warning = FALSE}
@@ -242,8 +244,6 @@ white.anova = anova(Long.no.other.race.mod, Long.Base.Mod)
 
 ```
 
-
-
 ```{r FINAL MODEL, echo=FALSE, eval = TRUE, warning = FALSE, message = FALSE, cache=TRUE}
 
 ##########################################
@@ -284,13 +284,13 @@ control.p = control.anova$`Pr(Chi)`
 
 <!-- ## Section 1: Introduction - provide an initial description of the data, study in which it was collected and focus of the study/analysis/questions of interest. -->
 
-## Introduction
+# Introduction
 
   The data used in this analysis is a subsample of the data collected in the National Collaborative Perinatal Project (CPP), a program which enrolled women during pregnancy and followed their pregnancy outcomes. The pregnancy outcome of interest in this analysis is premature delivery, which is typically defined as having gestational age at delivery of 37 weeks or less. The project collected demographic information including the mother's race, age, education, occupation as well as a lifestyle factor that is smoking status. The subsample contains 2380 women and children for whom additional assaying of serum samples was perfromed and the concentration doses for DDE and PCBs as well as cholesterol and triglycerides was recorded. DDE and PCBs are of particular interest as they are breakdown products of pesticides that bioaccumulate in fatty deposits of organisms. The goal of this analysis is to assess how exposure to DDE and PCBs relates to the risk of premature delivery. 
 
 <!-- # Section 2: Materials & Methods - describe the statistical approach/approaches used in the analysis, providing references as appropriate; do not present results in this section but just the methods used. You can carry out your analysis with multiple methods. -->
 
-## Materials & Methods
+# Materials & Methods
 
 In order to assess how exposure to DDE and PCBs relates to the risk of premature delivery, we investigate the associations between the concentration of DDE and PCBs and categories of preterm birth, accounting for other potential confounders. Specifically, we define categories of preterm birth as severely premature for having gestational ages of less than 33 week, premature for having gestational ages of less than 38 weeks, and full- to late-term for having gestational ages of between 38 and greater based on the guidelines provided by the World Health Organization [@who]. Owing to the relative implausibility of gestational terms exceeding 44 weeks, we opted to exclude observations exceeding 44 weeks in gestational age. The natural and ordinal categorization of gestational age leads us to employ ordinal logistic regression (otherwise known as proportional odds logistic regression) as our modeling method [@mccull1980]. This method provides useful interpretations in terms of risk and probability of pre-term birth, using the naturally ordinal structure of the oreterm birth categories, and differentiates between the severity of severely pre-term births and moderately pre-term births. This structure also addresses the non-normality, heavy-tailedness of the response which impedes the use of standard linear regression. The model has the following structural form:
 
@@ -325,14 +325,15 @@ The first requirement is evidently satisfied by the natural ordering of preterm 
 <!-- - Remove obs with missing PCE value -->
 <!-- - Include blood cholesterol/triglyceride levels, as well as center and SES/Lifestyle metrics -->
 
-## Section 3: Results - describe the results of the analysis approaches described in Section 2. It
-may be useful to break this into subsections, such as:
-– 3.1 Exploratory Data Analysis
-– 3.2 Main Results
-– 3.3 Sensitivity Analysis
-Make sure to very clearly address the questions of interest!
+<!-- ## Section 3: Results - describe the results of the analysis approaches described in Section 2. It -->
+<!-- may be useful to break this into subsections, such as: -->
+<!-- – 3.1 Exploratory Data Analysis -->
+<!-- – 3.2 Main Results -->
+<!-- – 3.3 Sensitivity Analysis -->
+<!-- Make sure to very clearly address the questions of interest! -->
+# Results
 
-# EDA
+## Exploratory Data Analysis
 
 Many of the variables in the dataset exhibit a variety of issues such as measurement errors, zero-inflation, multi-collinearity and missingness. Gestational age potentially contain measurement errors since its values range from 27 to 90 (Figure \ref{fig:gesthist}). As the date of conception typically relies on the first day of the mother's last menstrual period, if the mother missed any menstrual cycles, the estimated gestational age could be more than 44 weeks, normally considered as the upper bound of a plausable late term gestation. We address this issue by keeping observations with 44 weeks or less in gestational age.
 
@@ -486,10 +487,10 @@ test_mod <- polr(gestational_cat ~ race +
                  center, 
                data = longnecker,
                Hess=TRUE)
-brant(test_mod)
+br.test = brant(test_mod)
 ```
 
-# Sensitivity Analysis
+## Sensitivity Analysis
 
 ```{r, sensitivity-count, cache=TRUE}
   y <- longnecker$gestational_cat
@@ -546,44 +547,46 @@ ggplot(ci_df %>% filter(rowname %in% c("raceblack", "log_dde", "pcb_pca1", "has_
 ```
 
 
-# Main Results
+## Main Results
 
 Before we discuss our main results, we will touch on a number of F-tests that we performed to help determine the appropriate structure and complexity of our model:
-- Indication (p=`r round(PCA.anova[2,"Pr(Chi)"],2) `) that the first principle component of the pcb_* values is sufficient.
-- Indication (p=`r round(score.p.value, 2)`) against including Score Variables (post imputation)
-- Indication (p=`r round(Center.Inter.Anova[2, "Pr(Chi)"],2) `) against including Center interactions with DDE/PCB
-- Indication (p=`r round(Center.Inclusion.Anova[2, "Pr(Chi)"],2) `) for including Center as variable
-- Indication (p=`r round(DDE.PCA.Inter.Anova[2, "Pr(Chi)"],2) `) against PCB-DDE interaction effect
-- Indication (p=`r round(Trig.Inter.Anova[2, "Pr(Chi)"],2) `) (weakly) against Triglyceride interaction with PCE/DDE
-- Indication (p=`r round(Age.Poly.Anova[2, "Pr(Chi)"],2) `) for inclusion of quadratic term in maternal age
-- Strong indication that the indicator of testing for Albumin is associated with longer gestational period on the margin.
+
+* Indication (p=`r round(PCA.anova[2,"Pr(Chi)"],2) `) that the first principle component of the pcb_* values is sufficient.
+* Indication (p=`r round(score.p.value, 2)`) against including Score Variables (post imputation)
+* Indication (p=`r round(Center.Inter.Anova[2, "Pr(Chi)"],2) `) against including Center interactions with DDE/PCB
+* Indication (p=`r round(Center.Inclusion.Anova[2, "Pr(Chi)"],2) `) for including Center as variable
+* Indication (p=`r round(DDE.PCA.Inter.Anova[2, "Pr(Chi)"],2) `) against PCB-DDE interaction effect
+* Indication (p=`r round(Trig.Inter.Anova[2, "Pr(Chi)"],2) `) (weakly) against Triglyceride interaction with PCE/DDE
+* Indication (p=`r round(Age.Poly.Anova[2, "Pr(Chi)"],2) `) for inclusion of quadratic term in maternal age
+* Strong indication that the indicator of testing for Albumin is associated with longer gestational period on the margin.
 
 We make a couple of comments on the above. We had hypothesized that we could conclude a triglyceride-DDE/PCB interaction owing to the fat-solubility of the DDE an PCB compounds. Our finding for the inclusion of a quadratic maternal age term is in line with our observations in the EDA of probability of pre-term birth versus maternal age. Taking into account these results, we express our final model form below in R-standard notation:
 
 \begin{align} GestCategory &\sim Center+log(dde)+logPCB1 \\ &+log(trigl.)+Poly(MaternalAge,2) \\&+Smoking+log(Cholest.)+AlbuminTested \\  &+race\end{align} 
 
-Testing inclusion of both DDE and PCB vs. control model (p=`r round(control.p[2],3)`). This is a test of the inclusion of both DDE and PCB vs the exclusion of both. This is necessary as DDE and PCB tend to be positively correlated. Marginally in the full model each is at the edge of significance:
+Testing inclusion of both DDE and PCB vs. control model gives p=`r round(control.p[2],3)`. This is a test of the inclusion of both DDE and PCB vs the exclusion of both. This indicates that the addition of DDE and PCB as predictors represents a substantial improvement in explanatory power of pre-term birth risk over control, including explanatory value in differentiating among degrees of severity in pre-term birth. Marginally in the full model each is at the edge of significance (at the 5% level), likely due to their positive correlation:
 <!-- - Note the overlap of the confidence intervals with 0. -->
 
 ```{r}
-knitr::kable(as.data.frame(round(1*chem.effect.summary, 3)))
+knitr::kable(as.data.frame(round(1*chem.effect.summary, 3)), caption = "Coefficient Estimates for Target Chemicals")
 ```
 
-# Results
 
 ```{r}
 inter_table <- chem.effect.summary
 rownames(inter_table) <- c("DDE", "PCB1")
-knitr::kable(as.data.frame(round(1.1**inter_table,3)), caption = "Change in odds ratio for 10% increase in exposure")
+resp = as.data.frame(round(exp(.1*inter_table),3))
+knitr::kable(resp, caption = "Multiplier of odds ratio for 10 percent increase in exposure")
 ```
+We note the following interpretations of the above:
 
-- For 10% increase in DDE exposure, the odds of having more normal gestational age decreases by 1.7%.
-- For 10% increase in the first PC summary of PCBs, the odds of having more normal gestational age decreases by 0.5%.
+- For 10% increase in DDE exposure, the odds of having more normal gestational age decreases by `r round(100 - 100 * exp(.1*inter_table[1,1]),1)`%.
+- For 10% increase in the first PC summary of PCBs, the odds of having more normal gestational age decreases by `r round(100 - 100 * exp(.1*inter_table[2,1]),1)`%. See \@ref(fig:Results) below fora pictoral representation of fitted dose response probabilities across gestational term severities. 
 
 <!-- https://stats.idre.ucla.edu/r/dae/ordinal-logistic-regression/ -->
 <!-- https://stats.idre.ucla.edu/other/mult-pkg/faq/general/faqhow-do-i-interpret-a-regression-model-when-some-variables-are-log-transformed/ -->
 
-```{r Results}
+```{r Results, fig.width=8,fig.cap="\\label{fig:Results}Predicted Dose Responses as Probabilities for Log DDE and Log PCB1"}
 probabilities <- predict(Final.Mod, type = "probs")
 predictors <- c("logdde", "logPCB1","severe_premature", "premature", "normal"
                 )
@@ -601,11 +604,13 @@ Long %>%
   geom_smooth(method = "loess") + 
   theme_bw() + 
   facet_grid(cols = vars(categories), rows = vars(predictors), scales = "free") +
-  ggtitle("Fitted Probabilities vs DDE (ug/dL)/PCB (princ comp.)  (log scale)")
+  ylab("DDE or PCB1 Value (log scale)")
 ```
 
 
-# Section 4: Discussion - comment on advantages and disadvantages of the approach taken and briefly discuss other approaches you could have taken instead.
+# Discussion 
+
+<!-- - comment on advantages and disadvantages of the approach taken and briefly discuss other approaches you could have taken instead. -->
 
 A key advantage of this approach is that its interpretation is naturally suited to the problem at hand. Our goal is to assess risks of pre-term delivery resulting from differing blood levels of certain chemicals, namely dde and pcb_*'s, while also differentiating among varying levels of severity of such pre-term births. An ordinal logistic regression model provides probability of response accross various, categories of gestational delivery age, taking into account different severities, while also incorporating the natural ordinality of the different gestational categories. One disadvantage of this model is a relatively stringent structural assumption, namely that of proportional odds. This is a relatively difficult requirement to proof conclusively, though the Brant test, which we have employed, is able to provide support for the assumption. Another disadvantage is the necessity of choosing particular cut points to represent our gestational categories. In one sense, the existence of certain natural cut points in fetal development, as provided by various reputable organizations as WHO, may make this type of categorization seem sensible. On the other hand, categorizing continuous data will always possess a degree of arbitrarity, and it may risk masking different dynamics contained within categories or across categories. An alternative modeling framework which may have been of use is quantile regression. Quantile regression, which remarkably few assumptions, provides an estimation of a given quantile of the response variable as a linear function of predictor variables. One can then fit this model across a range of quantiles to obtain a sense of how the overall distribution of the response changes over the predictor space. This could allow one to identify that, hypothetically, the 20th or 10th quantile of gestational age tends to decrease with increasing DDE concentration, even if the median or higher quantiles are little affected, allowing one to assess the presence of increasing downside risk in the form of longer tails. This also seems promising as a means of answering the question of interest. This method can easily handle to non-normality of our response variable, and it also provides a sense changing likelihood of pre-term births while also differentiating among different levels of severity. It does strike us, however, that there may be some increased difficulty in interpretability, as the true question of interest seems closer to assessing the likelihood of gestational age falling below a given level, as opposed to estimating a given quantile of gestational age. 
 
@@ -613,12 +618,50 @@ We end up concluding that the first principle component is sufficient. As the we
 
 <!-- # Appendix - contains any necessary technical and other material that would be good to include but may make the main part difficult to read, particularly for a non-specialist/scientist. Sections 1-4 should be as accessible as possible to a non-statistician scientist/researcher in the relevant area & should be written in a clear/concise manner. -->
 
+# Appendix
+
+## Final Model Summary Output
+
+
+```{r}
+ summary(Final.Mod) 
+```
+
+
+## ANOVA Tests
+
+```{r}
+library(kableExtra)
+knitr::kable(PCA.anova %>% dplyr::select(-Model), caption = "PCA Anova") %>% kable_styling(latex_options = "hold_position")
+
+knitr::kable(Center.Inter.Anova %>% dplyr::select(-Model), caption = "Center Interaction Anova")%>% kable_styling(latex_options = "hold_position")
+
+knitr::kable(Center.Inclusion.Anova %>% dplyr::select(-Model), caption = "Center Inclusion Anova")%>% kable_styling(latex_options = "hold_position")
+
+knitr::kable(DDE.PCA.Inter.Anova %>% dplyr::select(-Model), caption = "DDE-PCB1 Interaction Anova")%>% kable_styling(latex_options = "hold_position")
+
+knitr::kable(Trig.Inter.Anova %>% dplyr::select(-Model), caption="Triglyceride-DDE/PCB Interaction Anova")%>% kable_styling(latex_options = "hold_position")
+
+knitr::kable(Age.Poly.Anova %>% dplyr::select(-Model), caption = "Quadratic Maternal Age Anova")%>% kable_styling(latex_options = "hold_position")
+
+knitr::kable(control.anova %>% dplyr::select(-Model), caption = "DDE/PCB vs Control Anova")%>% kable_styling(latex_options = "hold_position")
+```
+
+## Proportional Odds Assumption
+
+Below is the output for the Brant test mentioned above:
+
+```{r}
+knitr::kable(br.test, caption = "Brant test for proportional odds") %>% kable_styling(latex_options = "HOLD_position")
+```
+
+Note that we have a significant p-value for Race:Other; otherwise there are robust results indicating that the proportional odds assumption is not unreasonable. We note that because the Race:Other category is quite small as a percentage of the whole data set, it is likely to be acceptable to proceed with this modeling procedure.
 
 
 # Citations
-cut offs
-https://www.who.int/news-room/fact-sheets/detail/preterm-birth
+<!-- cut offs -->
+<!-- https://www.who.int/news-room/fact-sheets/detail/preterm-birth -->
 
-albumin
-https://account.allinahealth.org/library/content/1/3480
-https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4665611/
+<!-- albumin -->
+<!-- https://account.allinahealth.org/library/content/1/3480 -->
+<!-- https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4665611/ -->
