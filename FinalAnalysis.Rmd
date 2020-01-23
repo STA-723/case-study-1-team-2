@@ -2,11 +2,26 @@
 title: "Final Report"
 author: "Phuc Nguyen, Joseph Lawson, Emily Gentles"
 date: "1/20/2020"
-output: html_document
+output: pdf_document
+references:
+- id: brant1990
+  title:  Assessing Proportionality in the Proportional Odds Model for Ordinal Logistic Regression
+  author:
+  - family: Brant
+    given: Rollin
+  container-title: Biometrics
+  volume: 46
+  URL: 'https://www.jstor.org/stable/pdf/2532457.pdf'
+  publisher: International Biometric Society
+  page: 1171-1178
+  type: article-journal
+  issued:
+    year: 1990
+    month: 12
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE)
 ```
 
 # Abstract/Summary - summarize the problem and the main findings of your project.
@@ -28,7 +43,11 @@ The reasonable use ordinal logstic regression relies on several assumptions:
 - Lack of multi-collinearity
 - predictor variables at least one of which is categorical, ordinal, or continuous
 
-The first and fourth of these requirements are evidently satisfied. The non-multi-collinearity requirement is addressed by performing a PCA analysis of the pcb_* predictors, which are heavily related and exhibit relatively high correlations. The proportional odds assumption may be tested via the Brant test for which have obtained satisfactory results.
+The first and fourth of these requirements are evidently satisfied. The non-multi-collinearity requirement is addressed by performing a PCA analysis of the pcb_* predictors, which are heavily related and exhibit relatively high correlations. The proportional odds assumption may be tested via the Brant test for which we have obtained satisfactory results.
+
+We note that 
+
+<!-- FROM SLIDE SHOW BELOW -->
 
 - Ordinal Logistic Regression with Term, Preterm, and Severely Preterm Gest. Categories
   + Useful interpretation in terms of risk
@@ -138,7 +157,7 @@ longnecker %>%
   ggplot(aes(y = gestational_age, x = has_albumin)) + geom_boxplot()
 ```
 
-### Ordered logistic regression
+### Ordinal Logistic Regression
 
 ```{r, ord}
 ord_mod <- polr(gestational_cat ~ race +
@@ -181,7 +200,7 @@ longnecker %>%
   facet_grid(cols = vars(categories), rows = vars(predictors), scales = "free")
 ```
 
-We use package `brant` to test the proportional odds assumption (from this post here: https://medium.com/evangelinelee/brant-test-for-proportional-odds-in-r-b0b373a93aa2). The assumption holds at the 0.05 level.
+We use package `brant` to test the proportional odds assumption via the Brant Test (@brant1990) (from this post here: https://medium.com/evangelinelee/brant-test-for-proportional-odds-in-r-b0b373a93aa2). The assumption holds at the 0.05 level.
 
 ```{r, diagnostics-prop-odds, }
 library(brant)
@@ -414,6 +433,19 @@ MatAgeGestTable = rowPerc(xtabs(formula = ~ MatAgeCat + gestord, data = Long))
 
 ```
 
+```{r}
+
+
+Long$white.or.not = as.factor(ifelse(Long$race == "white", "white", "non.white"))
+
+Long.no.other.race.mod = polr(gestord ~ center + log(triglycerides) + log(dde) + logPCB1 +  maternal_age + smoking_status + log(cholesterol) + albuminTested + white.or.not, data = Long, Hess = T)
+
+white.anova = anova(Long.no.other.race.mod, Long.Base.Mod)
+
+```
+
+
+
 ```{r FINAL MODEL, echo=FALSE, eval = TRUE, warning = FALSE, message = FALSE, cache=TRUE}
 
 ##########################################
@@ -421,7 +453,7 @@ MatAgeGestTable = rowPerc(xtabs(formula = ~ MatAgeCat + gestord, data = Long))
 ##########################################
 
 
-Final.Mod = polr(gestord~ center + log(dde) + logPCB1 + log(triglycerides)  + poly(maternal_age,2) + smoking_status + log(cholesterol) + albuminTested + race, data = Long, Hess = T)
+Final.Mod = polr(gestord~ center + log(triglycerides) + log(dde) + logPCB1 +  poly(maternal_age,2) + smoking_status + log(cholesterol) + albuminTested + race, data = Long, Hess = T)
 
 final.coef = coef(Final.Mod)
 final.confint = confint(Final.Mod)
@@ -431,15 +463,20 @@ colnames(chem.effect.summary)[1] = "Coef Est"
 
 Long$logdde = log(Long$dde)
 
-Control.Mod = polr(gestord~ center + log(triglycerides)  + poly(maternal_age,2) + smoking_status + log(cholesterol) + albuminTested + race, data = Long, Hess = T)
+Control.Mod = polr(gestord~ center + log(triglycerides) + poly(maternal_age,2) + smoking_status + log(cholesterol) + albuminTested + race, data = Long, Hess = T)
 
 control.anova = anova(Control.Mod, Final.Mod)
 control.p = control.anova$`Pr(Chi)`
 
 ### Brant test
+
+# Long = Long %>% mutate(log_dde = log(dde), log_trig = log(triglycerides), log_chol = log(cholesterol), maternal_age_2 = maternal_age^2)
+# 
+# Brant.Mod = polr(gestord~ center + log_trig + log_dde + logPCB1 + maternal_age + maternal_age_2 + smoking_status + log_chol + albuminTested + race, data = Long, Hess = T)
+# 
 # require(brant)
-# mod.brant = brant(Final.Mod)
-# mod.brant
+# mod.brant = brant(Brant.Mod)
+
 
 ```
 
@@ -447,6 +484,7 @@ control.p = control.anova$`Pr(Chi)`
 
 # Section 4: Discussion - comment on advantages and disadvantages of the approach taken and briefly discuss other approaches you could have taken instead.
 
+A key advantage of this approach is that its interpretation is naturally suited to the problem at hand. Our goal is to assess risks of pre-term delivery resulting from differing blood levels of certain chemicals, namely dde and pcb_*'s, while also differentiating among varying levels of severity of such pre-term births. An ordinal logistic regression model provides probability of response accross various, categories of gestational delivery age, taking into account different severities, while also incorporating the natural ordinality of the different gestational categories. One disadvantage of this model is a relatively stringent structural assumption, namely that of proportional odds. Briefly, thr proportional odds assumption requires that the odds of occupying each category or lower, so the odds of $(,A]$, $(,B]$, $(,C]$, etc, are proportional across the range of predictors in the model. This is a relatively difficult requirement to proof conclusively, though the Brant test, which we have employed, is able to provide support for the assumption. Another disadvantage is the necessity of choosing particular cut points to represent our gestational categories. In one sense, the existence of certain natural cut points in fetal development, as provided by various reputable organizations as WHO, may make this type of categorization seem sensible. On the other hand, categorizing continuous data will always possess a degree of arbitrarity, and it may risk masking different dynamics contained within categories or across categories. An alternative modeling framework which may have been of use is quantile regression. Quantile regression, which remarkably few assumptions, provides an estimation of a given quantile of the response variable as a linear function of predictor variables. One can then fit this model across a range of quantiles to obtain a sense of how the overall distribution of the response changes over the predictor space. This could allow one to identify that, hypothetically, the 20th or 10th quantile of gestational age tends to decrease with increasing DDE concentration, even if the median or higher quantiles are little affected, allowing one to assess the presence of increasing downside risk in the form of longer tails. This also seems promising as a means of answering the question of interest. This method can easily handle to non-normality of our response variable, and it also provides a sense changing likelihood of pre-term births while also differentiating among different levels of severity. It does strike us, however, that there may be some increased difficulty in interpretability, as the true question of interest seems closer to assessing the likelihood of gestational age falling below a given level, as opposed to estimating a given quantile of gestational age. 
 
 
 # Appendix - contains any necessary technical and other material that would be good to include but may make the main part difficult to read, particularly for a non-specialist/scientist. Sections 1-4 should be as accessible as possible to a non-statistician scientist/researcher in the relevant area & should be written in a clear/concise manner.
