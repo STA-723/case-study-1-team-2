@@ -1,7 +1,8 @@
 ---
 title: "Final Report"
 author: "Phuc Nguyen, Joseph Lawson, Emily Gentles"
-date: "1/20/2020"
+date: "1/23/2020"
+geometry: margin=".75in" 
 output: pdf_document
 references:
 - id: brant1990
@@ -46,7 +47,24 @@ abstract: PLACEHOLDER TEXT FOR ABSTRACT. SEE HEADER YAML TO CHANGE
 ---
 
 ```{r setup, include=FALSE, warning = FALSE, message=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+```
+
+```{r, library, message=FALSE, results=FALSE, warning = FALSE}
+library(tidyverse)
+library(mice)
+library(MASS)
+library(GGally)
+library(tidyverse)
+library(mice)
+library(nnet)
+library(corrplot)
+library(quantreg)
+library(MASS)
+library(knitr)
+library(tigerstats)
+library(ggplot2)
+set.seed(43)
 ```
 
 <!-- JOSEPH COMPUTATIONAL CODE BELOW -->
@@ -289,21 +307,19 @@ The reasonable use ordinal logstic regression relies on several assumptions:
 - Lack of multi-collinearity
 - predictor variables at least one of which is categorical, ordinal, or continuous
 
-The first and fourth of these requirements are evidently satisfied. The non-multi-collinearity requirement is addressed by performing a PCA analysis of the pcb_* predictors, which are heavily related and exhibit relatively high correlations. The proportional odds assumption may be tested via the Brant test for which we have obtained satisfactory results.
-
-We note that is a high degree of missingness for certain predictors, such as the "Score" variables. We use the MICE package in R to impute these missing data points. MICE generates multiple imputed datasets, as imputation is a random process.
+The first and fourth of these requirements are evidently satisfied. The non-multi-collinearity requirement is addressed by performing a PCA analysis of the pcb_* predictors, which are heavily related and exhibit relatively high correlations. The proportional odds assumption may be tested via the Brant test for which we have obtained satisfactory results. We note that is a high degree of missingness for certain predictors, such as the "Score" variables. We use the MICE package in R to impute these missing data points. MICE generates multiple imputed datasets, as imputation is a random process, and then pools the regression results from these imputed data sets to provide one set of results. We note in our EDA the relatively high collinearity among the pcb_* predictors. In order to deal with this, we perform a principle components analysis (PCA) on these predictors in order to summarize the data as new predictors that are uncorrelated. We end up concluding that the first principle component is sufficient. As the weights in the first principle component are all of the same sign and of broadly similar magnitude, we could have perhaps simply taken the sum of the pcb_* predictors as an alternative methodology. We note that there is one observation with missing pcb_* data. We remove this observation as its impact is de minimis. Finally, a key goal of our efforts is to determine whether there is a residual dose reponse of DDE an PCB after accounting for other predictors, such as blood cholesterol/triglyceride levels, as well as various metrics capturing socioeconomic status and lifestyle.
 
 <!-- FROM SLIDE SHOW BELOW -->
 
-- Ordinal Logistic Regression with Term, Preterm, and Severely Preterm Gest. Categories
-  + Useful interpretation in terms of risk
-  + Uses naturally ordinal structure
-  + Differentiates between different severities
-  + Addresses non-normality of response
-- Keep obs with Gest. Age 44 or less
-- Impute score data with MICE to check usefulness
-- Remove obs with missing PCE value
-- Include blood cholesterol/triglyceride levels, as well as center and SES/Lifestyle metrics
+<!-- - Ordinal Logistic Regression with Term, Preterm, and Severely Preterm Gest. Categories -->
+<!--   + Useful interpretation in terms of risk -->
+<!--   + Uses naturally ordinal structure -->
+<!--   + Differentiates between different severities -->
+<!--   + Addresses non-normality of response -->
+<!-- - Keep obs with Gest. Age 44 or less -->
+<!-- - Impute score data with MICE to check usefulness -->
+<!-- - Remove obs with missing PCE value -->
+<!-- - Include blood cholesterol/triglyceride levels, as well as center and SES/Lifestyle metrics -->
 
 
 
@@ -316,22 +332,7 @@ Make sure to very clearly address the questions of interest!
 
 # EDA
 
-```{r, library, message=FALSE, results=FALSE}
-library(tidyverse)
-library(mice)
-library(MASS)
-library(GGally)
-library(tidyverse)
-library(mice)
-library(nnet)
-library(corrplot)
-library(quantreg)
-library(MASS)
-library(knitr)
-library(tigerstats)
-library(ggplot2)
-set.seed(43)
-```
+
 
 ```{r, clean-data}
 longnecker_base <- readRDS(file = "Longnecker.rds")
@@ -376,7 +377,7 @@ longnecker["log_chol"] <- log(longnecker$cholesterol)
 ggpairs(longnecker %>% dplyr::select(gestational_cat, log_dde, pcb_pca1, log_tri, cholesterol, maternal_age))
 ```
 
-```{r}
+```{r, fig.show="hold", out.width="50%"}
 ggplot(longnecker, aes(x = gestational_age)) + geom_histogram(bins = 15)
 ggplot(longnecker, aes(x = gestational_cat)) + geom_bar()
 ggplot(longnecker, aes(fill = race, x = gestational_cat)) + geom_bar()
@@ -403,7 +404,7 @@ longnecker %>%
   ggplot(aes(y = gestational_age, x = has_albumin)) + geom_boxplot()
 ```
 
-### Ordinal Logistic Regression
+<!-- ### Ordinal Logistic Regression -->
 
 ```{r, ord}
 ord_mod <- polr(gestational_cat ~ race +
@@ -527,6 +528,86 @@ ggplot(ci_df %>% filter(rowname %in% c("raceblack", "log_dde", "pcb_pca1", "has_
 
 # Main Results
 
+Before we discuss our main results, we will touch on a number of F-tests that we performed to help determine the appropriate structure and complexity of our model. 
+
+- Model Comparison indicated (p=`r round(PCA.anova[2,"Pr(Chi)"],2) `) that the first principle component of the pcb_* values is sufficient.
+- Indication (p=`r round(score.p.value, 2)`) against including Score Variables (post imputation)
+- Indication (p=`r round(Center.Inter.Anova[2, "Pr(Chi)"],2) `) against including Center interactions
+- Indication (p=`r round(Center.Inclusion.Anova[2, "Pr(Chi)"],2) `) for including Center as variable
+  + Indicates heterogeneity in preterm birth risk accross medical centers
+
+----
+
+- Indication (p=`r round(DDE.PCA.Inter.Anova[2, "Pr(Chi)"],2) `) against PCB-DDE interaction effect
+- Indication (p=`r round(Trig.Inter.Anova[2, "Pr(Chi)"],2) `) (weakly) against Triglyceride interaction with PCE/DDE
+  + Hypothesized that there might be because of fat-solubility of the contaminants of interest
+- Indication (p=`r round(Age.Poly.Anova[2, "Pr(Chi)"],2) `) for inclusion of quadratic term in maternal age
+  + Makes sense given above chart/intuition of increased risk at extremes of age.
+- Strong indication that the indicator of testing for Albumin is associated with longer gestational period on the margin
+
+----
+
+- Control Variables of Significance (marginally) in Final Model:
+  + Center
+  + Triglycerides (g/dL)
+  + Cholesterol (g/dL)
+  + Maternal Age (years)
+  + Albumin (Testing Indicator)
+  + Race
+
+# Final Model
+
+\begin{align} GestCategory &\sim Center+log(dde)+logPCB1 \\ &+log(trigl.)+Poly(MaternalAge,2) \\&+Smoking+log(Cholest.)+AlbuminTested \\  &+race\end{align} 
+
+# Results
+
+**Goal**: Assess how exposure to DDE and PCBs relates to the risk of premature delivery
+
+- Testing inclusion of both DDE and PCB vs. control model (p=`r round(control.p[2],3)`)
+
+- Marginally in the full model each is at the edge of significance:
+<!-- - Note the overlap of the confidence intervals with 0. -->
+
+```{r}
+knitr::kable(as.data.frame(round(1*chem.effect.summary, 3)))
+```
+
+# Results
+
+```{r}
+inter_table <- chem.effect.summary
+rownames(inter_table) <- c("DDE", "PCB1")
+knitr::kable(as.data.frame(round(1.1**inter_table,3)), caption = "Change in odds ratio for 10% increase in exposure")
+```
+
+- For 10% increase in DDE exposure, the odds of having more normal gestational age decreases by 1.7%.
+- For 10% increase in the first PC summary of PCBs, the odds of having more normal gestational age decreases by 0.5%.
+
+<!-- https://stats.idre.ucla.edu/r/dae/ordinal-logistic-regression/ -->
+<!-- https://stats.idre.ucla.edu/other/mult-pkg/faq/general/faqhow-do-i-interpret-a-regression-model-when-some-variables-are-log-transformed/ -->
+
+----
+
+```{r Results}
+probabilities <- predict(Final.Mod, type = "probs")
+predictors <- c("logdde", "logPCB1","severe_premature", "premature", "normal"
+                )
+Long %>%
+  mutate(severe_premature = probabilities[,1],
+         premature = probabilities[, 2],
+         normal = probabilities[, 3]
+         ) %>%
+  dplyr::select(predictors) %>%
+  gather(key = "predictors", value = "predictor.value", 
+         -severe_premature, -premature, -normal) %>%
+  gather(key = "categories", value = "probability", -predictors, -predictor.value) %>%
+  ggplot(aes(probability, predictor.value)) +
+  geom_point(size = 0.5, alpha = 0.5) +
+  geom_smooth(method = "loess") + 
+  theme_bw() + 
+  facet_grid(cols = vars(categories), rows = vars(predictors), scales = "free") +
+  ggtitle("Fitted Probabilities vs DDE (ug/dL)/PCB (princ comp.)  (log scale)")
+```
 
 
 # Section 4: Discussion - comment on advantages and disadvantages of the approach taken and briefly discuss other approaches you could have taken instead.
