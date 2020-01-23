@@ -4,7 +4,8 @@ author: "Phuc Nguyen, Joseph Lawson, Emily Gentles"
 date: "1/23/2020"
 output: bookdown::pdf_document2
 toc: false
-geometry: margin=0.75in
+geometry: margin=0.7in
+fontsize: 10pt
 fig_caption: yes
 references:
 - id: brant1990
@@ -44,6 +45,64 @@ references:
   issued:
     year: 1980
     month: 2
+    
+- id: cohn2011
+  title:  Polychlorinated biphenyl (PCB) exposure in mothers and time to pregnancy in daughters
+  author:
+  - family: Cohn
+    given: Barbara
+  - family: Cirillo
+    given: Piera
+  - family: Sholtz
+    given: Robert
+  - family: Ferrara
+    given: Assiamira
+  - family: Park
+    given: June-Soo
+  - family: Schwingl
+    given: Pamela
+  container-title: Reproductive Toxicology
+  volume: 31
+  DOI: 'https://doi.org/10.1016/j.reprotox.2011.01.004'
+  publisher: Elsevier
+  page: 290-296
+  type: article-journal
+  issued:
+    year: 2011
+    month: 4
+    
+- id: cohn2003
+  title: DDT and DDE exposure in mothers and time to pregnancy in daughter
+  author:
+  - family: Cohn
+    given: Barbara
+  - family: Cirillo
+    given: Piera
+  - family: wolff
+    given: Mary
+  - family: Schwingl
+    given: Pamela
+  - family: Cohen
+    given: Richard
+  - family: Sholtz
+    given: Robert
+  - family: Ferrara
+    given: Assiamira
+  - family: Christianson
+    given: Roberta
+  - family: van den Berg
+    given: Barbara
+  - family: Siiteri
+    given: Pentti
+  container-title: The Lancet
+  volume: 361
+  DOI: 'https://doi.org/10.1016/S0140-6736(03)13776-2'
+  publisher: Elsevier
+  page: 2205-2206
+  type: article-journal
+  issued:
+    year: 2003
+    month: 6
 abstract: We examine a data set from the Collaborative Perinatal Project to assess the degree to which the likelihood and severity of pre-term births are influenced by the level of concentration of chemicals DDE and PCB in the blood of expecting mothers. We find positive evidence of an effect, using an ordinal logistic regression model to assess risk of pre-term births while also differentiating among different severities of pre-term births. We provide a summary of our findings as well as a discussion of the advantages and drawbacks our methods, as well as of potential alternatives.
 
 header-includes:
@@ -51,7 +110,7 @@ header-includes:
 ---
 
 ```{r setup, include=FALSE, warning = FALSE, message=FALSE}
-knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE,fig.pos = 'h')
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE,fig.pos = 'H')
 ```
 
 ```{r, library, message=FALSE, results=FALSE, warning = FALSE}
@@ -286,7 +345,7 @@ control.p = control.anova$`Pr(Chi)`
 
 # Introduction
 
-  The data used in this analysis is a subsample of the data collected in the National Collaborative Perinatal Project (CPP), a program which enrolled women during pregnancy and followed their pregnancy outcomes. The pregnancy outcome of interest in this analysis is premature delivery, which is typically defined as having gestational age at delivery of 37 weeks or less. The project collected demographic information including the mother's race, age, education, occupation as well as a lifestyle factor that is smoking status. The subsample contains 2380 women and children for whom additional assaying of serum samples was perfromed and the concentration doses for DDE and PCBs as well as cholesterol and triglycerides was recorded. DDE and PCBs are of particular interest as they are breakdown products of pesticides that bioaccumulate in fatty deposits of organisms. The goal of this analysis is to assess how exposure to DDE and PCBs relates to the risk of premature delivery. 
+  The data used in this analysis is a subsample of the data collected in the National Collaborative Perinatal Project (CPP), a program which enrolled women during pregnancy and followed their pregnancy outcomes. The pregnancy outcome of interest in this analysis is premature delivery, which is typically defined as having gestational age at delivery of 37 weeks or less. The project collected demographic information including the mother's race, age, education, occupation as well as a lifestyle factor that is smoking status. The subsample contains 2380 women and children for whom additional assaying of serum samples was perfromed and the concentration doses for DDE and PCBs as well as cholesterol and triglycerides was recorded. DDE and PCBs are of particular interest as they are breakdown products of pesticides that bioaccumulate in fatty deposits of organisms and are thought to have an impact on human reproduction [see @cohn2003; also @cohn2011]. The goal of this analysis is to assess how exposure to DDE and PCBs relates to the risk of premature delivery. 
 
 <!-- # Section 2: Materials & Methods - describe the statistical approach/approaches used in the analysis, providing references as appropriate; do not present results in this section but just the methods used. You can carry out your analysis with multiple methods. -->
 
