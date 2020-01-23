@@ -96,7 +96,9 @@ pcb_mat[pcb_mat == 0] <- min_pcb / 2
 pcb_mat <- apply(pcb_mat, 2, log)
 pcb.pr = prcomp(pcb_mat, center = T, scale = T)
 
-Long = Long %>% mutate(logPCB1 = -pcb.pr$x[,1], logPCB2 = pcb.pr$x[,2], logPCB3 = pcb.pr$x[,3])
+Long = Long %>% mutate(logPCB1 = -pcb.pr$x[,1], logPCB2 = pcb.pr$x[,2], logPCB3 = pcb.pr$x[,3], logPCB4 = pcb.pr$x[,4],
+                       logPCB5 = pcb.pr$x[,5], logPCB6 = pcb.pr$x[,6], logPCB7=pcb.pr$x[,7], logPCB8=pcb.pr$x[,8],
+                       logPCB9 = pcb.pr$x[,9], logPCB10 = pcb.pr$x[,10], logPCB11 = pcb.pr$x[,11])
 
 ##
 
@@ -123,7 +125,10 @@ Base.Confint = confint(Long.Base.Mod)
 
 ### PCA Analysis ###
 
-Long.PCA.1.2.3 = polr(gestord~ center + log(dde) + logPCB1 + logPCB2 + logPCB3 + log(triglycerides)  + maternal_age + smoking_status + log(cholesterol) + albuminTested + race, data = Long)
+Long.PCA.1.2.3 = polr(gestord~ center + log(dde) + logPCB1 + logPCB2 + logPCB3 + logPCB4 +
+                        logPCB5 + logPCB6 + logPCB7 + logPCB8 + logPCB9 + logPCB10 +
+                        logPCB11 + log(triglycerides)  + maternal_age + smoking_status + 
+                        log(cholesterol) + albuminTested + race, data = Long, Hess = T)
 
 
 # Long.PCA.logged = polr(gestord~ center + log(dde)*log(logPCB1) + log(triglycerides)  + maternal_age + smoking_status + cholesterol + albuminTested, data = Long)
