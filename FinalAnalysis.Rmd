@@ -642,8 +642,20 @@ Below is the output for the Brant test mentioned above:
 knitr::kable(br.test, caption = "Brant test for proportional odds") %>% kable_styling(latex_options = "HOLD_position")
 ```
 
-Note that we have a significant p-value for Race:Other; otherwise there are robust results indicating that the proportional odds assumption is not unreasonable. We note that because the Race:Other category is quite small as a percentage of the whole data set, it is likely to be acceptable to proceed with this modeling procedure.
+Note that we have a significant p-value for Race:Other; otherwise there are robust results indicating that the proportional odds assumption is not unreasonable. We note that because the Race:Other category is quite small as a percentage of the whole data set, it is likely to be acceptable to proceed with this modeling procedure. On a more general note, the proportional odds assumption is evident in the following computation:
 
+$$ \frac{odds(y_i\leq j)}{odds(y_k\leq j)} = \frac{e^{\alpha_j - \beta^T x_i}}{e^{\alpha_j - \beta^T x_k}} = e^{\beta^T(x_k-x_i)} $$
+Note how in the above this ratio is a constant over the range of $j$. As is fairly evident, this is a rather strict requirement to place on one's data.
+
+## Ordinal Logistic Model
+
+We perform some short calculations to demonstrate how one solve for probabilities of individual ordinal values from the modeled output of the model. We have:
+
+\begin{align*} logit(y_i\leq j) &= \alpha_j - \beta^T x_i \Rightarrow \\
+  P(y_i\leq j) &= \frac{e^{\alpha_j - \beta^T x_i}}{1+e^{\alpha_j - \beta^T x_i}} \\
+  P(y_i = j) = P(y_i \leq j) - P(y_i\leq j-1) = \frac{e^{\alpha_j - \beta^T x_i}}{1+e^{\alpha_j - \beta^T x_i}} - \frac{e^{\alpha_{j-1} - \beta^T x_i}}{1+e^{\alpha_{j-1} - \beta^T x_i}} \\
+  &= \frac{e^{\alpha_j-\beta^T x_i} - e^{\alpha_{j-1}-\beta^T x_i}}{(1+e^{\alpha_j-\beta^T x_i})(1+e^{\alpha_{j-1} - \beta^T x_i})}
+\end{align*}
 
 # Citations
 <!-- cut offs -->
