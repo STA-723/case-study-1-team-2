@@ -1,5 +1,5 @@
 ---
-title: "Final Report"
+title: "Assessing the Influence of DDE and PCBs on the Likelihood and Severity of Preterm Births"
 author: "Phuc Nguyen, Joseph Lawson, Emily Gentles"
 date: "1/23/2020"
 output: bookdown::pdf_document2
@@ -44,7 +44,7 @@ references:
   issued:
     year: 1980
     month: 2
-abstract: PLACEHOLDER TEXT FOR ABSTRACT. SEE HEADER YAML TO CHANGE
+abstract: We examine a data set from the Collaborative Perinatal Project to assess the degree to which the likelihood and severity of pre-term births are influenced by the level of concentration of chemicals DDE and PCB in the blood of expecting mothers. We find positive evidence of an effect, using an ordinal logistic regression model to assess risk of pre-term births while also differentiating among different severities of pre-term births. We provide a summary of our findings as well as a discussion of the advantages and drawbacks our methods, as well as of potential alternatives.
 
 header-includes:
     \usepackage{float}
@@ -311,7 +311,7 @@ The reasonable use ordinal logstic regression relies on several assumptions:
 - Lack of multi-collinearity
 - Predictors are either categorical, ordinal, or continuous
 
-The first requirement is evidently satisfied by the natural ordering of preterm birth categories. Performing a Principal Component Analysis (PCA) of the PCB predictors, which exhibit relatively high correlations (\ref{fig:gpairs} (right)), to produce new uncorrelated variables, guarenteeing the multi-collinearity assumption. The proportional odds assumption may be tested via the Brant test for which we obtain satisfactory results. We note that "Score" variables have a high degree of missingness and use the MICE package in R to impute these missing data points. MICE generates multiple imputed datasets, as imputation is a random process, then pools the regression results from these imputed data sets to provide one set of results. We remove one observation with missing PCB data. We also include other potential confounders such as blood cholesterol/triglyceride levels, the center where these measurements were taken and metrics capturing socioeconomic status and lifestyle in the model. Finally, we perform model selection using F-tests.
+The first requirement is evidently satisfied by the natural ordering of preterm birth categories. Performing a Principal Component Analysis (PCA) of the PCB predictors, which exhibit relatively high correlations (\ref{fig:gpairs} (right)), to produce new uncorrelated variables, guarenteeing the multi-collinearity assumption. The proportional odds assumption may be tested via the Brant test for which we obtain satisfactory results [@brant1990]. We note that "Score" variables have a high degree of missingness and use the MICE package in R to impute these missing data points. MICE generates multiple imputed datasets, as imputation is a random process, then pools the regression results from these imputed data sets to provide one set of results. We remove one observation with missing PCB data. We also include other potential confounders such as blood cholesterol/triglyceride levels, the center where these measurements were taken and metrics capturing socioeconomic status and lifestyle in the model. Finally, we perform model selection using F-tests.
 
 <!-- FROM SLIDE SHOW BELOW -->
 
@@ -440,7 +440,7 @@ ord_mod <- polr(gestational_cat ~ race +
                data = longnecker,
                Hess=TRUE)
 p_ord <- pnorm(abs(coef(summary(ord_mod))[, "t value"]), lower.tail = FALSE) * 2
-cbind(summary(ord_mod)$coefficients, "p value" = p_ord)
+ord_mod_summary = cbind(summary(ord_mod)$coefficients, "p value" = p_ord)
 ```
 
 ```{r, diagnostics-linearity}
@@ -468,13 +468,13 @@ longnecker %>%
   facet_grid(cols = vars(categories), rows = vars(predictors), scales = "free")
 ```
 
-We use package `brant` to test the proportional odds assumption via the Brant Test [@brant1990] 
+
 
 <!-- JUST A BLOG POST: (from this post here: https://medium.com/evangelinelee/brant-test-for-proportional-odds-in-r-b0b373a93aa2).  -->
 
 The assumption holds at the 0.05 level.
 
-```{r, diagnostics-prop-odds, }
+```{r, diagnostics-prop-odds, results='hide'}
 library(brant)
 test_mod <- polr(gestational_cat ~ race +
                  log_dde + 
@@ -568,7 +568,8 @@ Testing inclusion of both DDE and PCB vs. control model gives p=`r round(control
 <!-- - Note the overlap of the confidence intervals with 0. -->
 
 ```{r}
-knitr::kable(as.data.frame(round(1*chem.effect.summary, 3)), caption = "Coefficient Estimates for Target Chemicals")
+library(kableExtra)
+knitr::kable(as.data.frame(round(1*chem.effect.summary, 3)), caption = "Coefficient Estimates for Target Chemicals") %>% kable_styling(latex_options = "HOLD_position")
 ```
 
 
@@ -576,7 +577,7 @@ knitr::kable(as.data.frame(round(1*chem.effect.summary, 3)), caption = "Coeffici
 inter_table <- chem.effect.summary
 rownames(inter_table) <- c("DDE", "PCB1")
 resp = as.data.frame(round(exp(.1*inter_table),3))
-knitr::kable(resp, caption = "Multiplier of odds ratio for 10 percent increase in exposure")
+knitr::kable(resp, caption = "Multiplier of odds ratio for 10 percent increase in exposure") %>% kable_styling(latex_options = "HOLD_position")
 ```
 We note the following interpretations of the above:
 
@@ -632,19 +633,19 @@ We end up concluding that the first principle component is sufficient. As the we
 
 ```{r}
 library(kableExtra)
-knitr::kable(PCA.anova %>% dplyr::select(-Model), caption = "PCA Anova") %>% kable_styling(latex_options = "hold_position")
+knitr::kable(PCA.anova %>% dplyr::select(-Model), caption = "PCA Anova") %>% kable_styling(latex_options = "HOLD_position")
 
-knitr::kable(Center.Inter.Anova %>% dplyr::select(-Model), caption = "Center Interaction Anova")%>% kable_styling(latex_options = "hold_position")
+knitr::kable(Center.Inter.Anova %>% dplyr::select(-Model), caption = "Center Interaction Anova")%>% kable_styling(latex_options = "HOLD_position")
 
-knitr::kable(Center.Inclusion.Anova %>% dplyr::select(-Model), caption = "Center Inclusion Anova")%>% kable_styling(latex_options = "hold_position")
+knitr::kable(Center.Inclusion.Anova %>% dplyr::select(-Model), caption = "Center Inclusion Anova")%>% kable_styling(latex_options = "HOLD_position")
 
-knitr::kable(DDE.PCA.Inter.Anova %>% dplyr::select(-Model), caption = "DDE-PCB1 Interaction Anova")%>% kable_styling(latex_options = "hold_position")
+knitr::kable(DDE.PCA.Inter.Anova %>% dplyr::select(-Model), caption = "DDE-PCB1 Interaction Anova")%>% kable_styling(latex_options = "HOLD_position")
 
-knitr::kable(Trig.Inter.Anova %>% dplyr::select(-Model), caption="Triglyceride-DDE/PCB Interaction Anova")%>% kable_styling(latex_options = "hold_position")
+knitr::kable(Trig.Inter.Anova %>% dplyr::select(-Model), caption="Triglyceride-DDE/PCB Interaction Anova")%>% kable_styling(latex_options = "HOLD_position")
 
-knitr::kable(Age.Poly.Anova %>% dplyr::select(-Model), caption = "Quadratic Maternal Age Anova")%>% kable_styling(latex_options = "hold_position")
+knitr::kable(Age.Poly.Anova %>% dplyr::select(-Model), caption = "Quadratic Maternal Age Anova")%>% kable_styling(latex_options = "HOLD_position")
 
-knitr::kable(control.anova %>% dplyr::select(-Model), caption = "DDE/PCB vs Control Anova")%>% kable_styling(latex_options = "hold_position")
+knitr::kable(control.anova %>% dplyr::select(-Model), caption = "DDE/PCB vs Control Anova")%>% kable_styling(latex_options = "HOLD_position")
 ```
 
 ## Proportional Odds Assumption
@@ -666,7 +667,7 @@ We perform some short calculations to demonstrate how one solve for probabilitie
 
 \begin{align*} logit(y_i\leq j) &= \alpha_j - \beta^T x_i \Rightarrow \\
   P(y_i\leq j) &= \frac{e^{\alpha_j - \beta^T x_i}}{1+e^{\alpha_j - \beta^T x_i}} \\
-  P(y_i = j) = P(y_i \leq j) - P(y_i\leq j-1) = \frac{e^{\alpha_j - \beta^T x_i}}{1+e^{\alpha_j - \beta^T x_i}} - \frac{e^{\alpha_{j-1} - \beta^T x_i}}{1+e^{\alpha_{j-1} - \beta^T x_i}} \\
+  P(y_i = j) &= P(y_i \leq j) - P(y_i\leq j-1) = \frac{e^{\alpha_j - \beta^T x_i}}{1+e^{\alpha_j - \beta^T x_i}} - \frac{e^{\alpha_{j-1} - \beta^T x_i}}{1+e^{\alpha_{j-1} - \beta^T x_i}} \\
   &= \frac{e^{\alpha_j-\beta^T x_i} - e^{\alpha_{j-1}-\beta^T x_i}}{(1+e^{\alpha_j-\beta^T x_i})(1+e^{\alpha_{j-1} - \beta^T x_i})}
 \end{align*}
 
