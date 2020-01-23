@@ -2,8 +2,8 @@
 title: "Final Report"
 author: "Phuc Nguyen, Joseph Lawson, Emily Gentles"
 date: "1/23/2020"
-geometry: margin=".75in" 
 output: pdf_document
+geometry: margin=0.75in
 references:
 - id: brant1990
   title:  Assessing Proportionality in the Proportional Odds Model for Ordinal Logistic Regression
@@ -533,44 +533,21 @@ ggplot(ci_df %>% filter(rowname %in% c("raceblack", "log_dde", "pcb_pca1", "has_
 
 # Main Results
 
-Before we discuss our main results, we will touch on a number of F-tests that we performed to help determine the appropriate structure and complexity of our model. 
-
-- Model Comparison indicated (p=`r round(PCA.anova[2,"Pr(Chi)"],2) `) that the first principle component of the pcb_* values is sufficient.
+Before we discuss our main results, we will touch on a number of F-tests that we performed to help determine the appropriate structure and complexity of our model:
+- Indication (p=`r round(PCA.anova[2,"Pr(Chi)"],2) `) that the first principle component of the pcb_* values is sufficient.
 - Indication (p=`r round(score.p.value, 2)`) against including Score Variables (post imputation)
-- Indication (p=`r round(Center.Inter.Anova[2, "Pr(Chi)"],2) `) against including Center interactions
+- Indication (p=`r round(Center.Inter.Anova[2, "Pr(Chi)"],2) `) against including Center interactions with DDE/PCB
 - Indication (p=`r round(Center.Inclusion.Anova[2, "Pr(Chi)"],2) `) for including Center as variable
-  + Indicates heterogeneity in preterm birth risk accross medical centers
-
-----
-
 - Indication (p=`r round(DDE.PCA.Inter.Anova[2, "Pr(Chi)"],2) `) against PCB-DDE interaction effect
 - Indication (p=`r round(Trig.Inter.Anova[2, "Pr(Chi)"],2) `) (weakly) against Triglyceride interaction with PCE/DDE
-  + Hypothesized that there might be because of fat-solubility of the contaminants of interest
 - Indication (p=`r round(Age.Poly.Anova[2, "Pr(Chi)"],2) `) for inclusion of quadratic term in maternal age
-  + Makes sense given above chart/intuition of increased risk at extremes of age.
-- Strong indication that the indicator of testing for Albumin is associated with longer gestational period on the margin
+- Strong indication that the indicator of testing for Albumin is associated with longer gestational period on the margin.
 
-----
-
-- Control Variables of Significance (marginally) in Final Model:
-  + Center
-  + Triglycerides (g/dL)
-  + Cholesterol (g/dL)
-  + Maternal Age (years)
-  + Albumin (Testing Indicator)
-  + Race
-
-# Final Model
+We make a couple of comments on the above. We had hypothesized that we could conclude a triglyceride-DDE/PCB interaction owing to the fat-solubility of the DDE an PCB compounds. Our finding for the inclusion of a quadratic maternal age term is in line with our observations in the EDA of probability of pre-term birth versus maternal age. Taking into account these results, we express our final model form below in R-standard notation:
 
 \begin{align} GestCategory &\sim Center+log(dde)+logPCB1 \\ &+log(trigl.)+Poly(MaternalAge,2) \\&+Smoking+log(Cholest.)+AlbuminTested \\  &+race\end{align} 
 
-# Results
-
-**Goal**: Assess how exposure to DDE and PCBs relates to the risk of premature delivery
-
-- Testing inclusion of both DDE and PCB vs. control model (p=`r round(control.p[2],3)`)
-
-- Marginally in the full model each is at the edge of significance:
+Testing inclusion of both DDE and PCB vs. control model (p=`r round(control.p[2],3)`). This is a test of the inclusion of both DDE and PCB vs the exclusion of both. This is necessary as DDE and PCB tend to be positively correlated. Marginally in the full model each is at the edge of significance:
 <!-- - Note the overlap of the confidence intervals with 0. -->
 
 ```{r}
@@ -590,8 +567,6 @@ knitr::kable(as.data.frame(round(1.1**inter_table,3)), caption = "Change in odds
 
 <!-- https://stats.idre.ucla.edu/r/dae/ordinal-logistic-regression/ -->
 <!-- https://stats.idre.ucla.edu/other/mult-pkg/faq/general/faqhow-do-i-interpret-a-regression-model-when-some-variables-are-log-transformed/ -->
-
-----
 
 ```{r Results}
 probabilities <- predict(Final.Mod, type = "probs")
