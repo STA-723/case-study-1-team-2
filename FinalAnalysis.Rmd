@@ -3,6 +3,7 @@ title: "Final Report"
 author: "Phuc Nguyen, Joseph Lawson, Emily Gentles"
 date: "1/23/2020"
 output: bookdown::pdf_document2
+toc: false
 geometry: margin=0.75in
 fig_caption: yes
 references:
@@ -243,8 +244,6 @@ white.anova = anova(Long.no.other.race.mod, Long.Base.Mod)
 
 ```
 
-
-
 ```{r FINAL MODEL, echo=FALSE, eval = TRUE, warning = FALSE, message = FALSE, cache=TRUE}
 
 ##########################################
@@ -287,18 +286,16 @@ control.p = control.anova$`Pr(Chi)`
 
 # Introduction
 
-  The data used in this analysis is a subsample of the data collected in the National Collaborative Perinatal Project (CPP), a program which enrolled women during pregnancy and followed their pregnancy outcomes. The project collected demographic information such as race and maternal age as well as lifestyle factors such as smoking status. The subsample contains 2380 women and children for whom additional assaying of serum samples was perfromed and the concentration doses for DDE and PCBs was recorded. DDE and PCBs are of particular interest as they are breakdown products of pesticides that bioaccumulate in fatty deposits of organisms. The goal of this analysis is to assess how exposure to DDE and PCBs relates to the risk of premature delivery. 
-
-  Many of the variables in this study exhibit a variety of issues such as uncertainty, inflation, and missingness. Uncertainty is introduced into the variable gestational age as calculating the date of conception is not exact because it typically relies on the first day of the mother's last menstrual period. Assuming the mother did not miss any menstrual cycles, the date of conception could be incorrect by 11-21 days meaning that a gestational age of 47, normally considered highly unlikely, could atually represent a gestational age of 44, normally considered as a plausable late term gestation. There also seems to be some general mismanagement of data as gestational ages of 90 weeks appear in the data even though this is almost twice the length of the longest recorded pregnancy. We also see an inflation of zeros in the PCB variables due to the limitations of measurement equipment that, below a certain threshold, rounds values to zero. Missigness is most significantly present for the variable albumin for which less than 10% of women had their levels recorded. Since albumin can be an indicator of liver disease, kidney disease, and possibly gestational diabetes, the missigness might be due to the fact that only women who were perceived to be at risk were tested. In this case, the simple presence of being tested for albumin would likely be more significant than the actual values recorded.
+  The data used in this analysis is a subsample of the data collected in the National Collaborative Perinatal Project (CPP), a program which enrolled women during pregnancy and followed their pregnancy outcomes. The pregnancy outcome of interest in this analysis is premature delivery, which is typically defined as having gestational age at delivery of 37 weeks or less. The project collected demographic information including the mother's race, age, education, occupation as well as a lifestyle factor that is smoking status. The subsample contains 2380 women and children for whom additional assaying of serum samples was perfromed and the concentration doses for DDE and PCBs as well as cholesterol and triglycerides was recorded. DDE and PCBs are of particular interest as they are breakdown products of pesticides that bioaccumulate in fatty deposits of organisms. The goal of this analysis is to assess how exposure to DDE and PCBs relates to the risk of premature delivery. 
 
 <!-- # Section 2: Materials & Methods - describe the statistical approach/approaches used in the analysis, providing references as appropriate; do not present results in this section but just the methods used. You can carry out your analysis with multiple methods. -->
 
 # Materials & Methods
 
-In order to assess how exposure to DDE and PCBs relates to the risk of premature delivery we decided to investigate how well the concentration doses of DDE and PCBs predict premature delivery. We noticed that there are clinical categories for gestational age with gestational ages of less than 33 weeks corresponding to severely preterm births, gestational ages of less than 38 weeks corresponding to preterm births, and gestational ages of between 38 and greater corresponding to full- to late-term births, which correspond to guidelines provided by the World Health Organization [@who]. Owing to the relative implausibility of gestational terms exceeding 44 weeks and resulting high likelihood that such observations in the data are erroneous, we opted to exclude observations exceeding 44 weeks. Because the distribution of gestational periods appears to be reasonably symmetric when keeping these large observations, it is possible that the entire distribution has been shifted to the right owing to some bias in gestational age data collection. This is speculative and thus we do not wish to make sweeping changes of on this basis. The natural and ordinal categorization of gestational age leads us to employ ordinal logistic regression (otherwise known as proportional odds logistic regression) as our modeling method [@mccull1980]. This method provides useful interpretation in terms of risk and probability of pre-term birth while using the naturally ordinal structure of the gestational age categories and differentiating between the severity of severely pre-term births and moderately pre-term births. This structure also addresses the non-normality of the response which is readily observable and impedes the use of standard linear regression. The model has the following structural form:
+In order to assess how exposure to DDE and PCBs relates to the risk of premature delivery, we investigate the associations between the concentration of DDE and PCBs and categories of preterm birth, accounting for other potential confounders. Specifically, we define categories of preterm birth as severely premature for having gestational ages of less than 33 week, premature for having gestational ages of less than 38 weeks, and full- to late-term for having gestational ages of between 38 and greater based on the guidelines provided by the World Health Organization [@who]. Owing to the relative implausibility of gestational terms exceeding 44 weeks, we opted to exclude observations exceeding 44 weeks in gestational age. The natural and ordinal categorization of gestational age leads us to employ ordinal logistic regression (otherwise known as proportional odds logistic regression) as our modeling method [@mccull1980]. This method provides useful interpretations in terms of risk and probability of pre-term birth, using the naturally ordinal structure of the oreterm birth categories, and differentiates between the severity of severely pre-term births and moderately pre-term births. This structure also addresses the non-normality, heavy-tailedness of the response which impedes the use of standard linear regression. The model has the following structural form:
 
 $$ logit(Y_i\leq j) = \alpha_j - \beta^T X_i $$
-From which pme derives:
+From which one derives:
 
 $$ P(Y_i\leq j) = \frac{e^{\alpha_j - \beta^T X_i}}{1+e^{\alpha_j-\beta^T X_i}} $$
 
@@ -307,15 +304,14 @@ $$ P(Y_i\leq j) = \frac{e^{\alpha_j - \beta^T X_i}}{1+e^{\alpha_j-\beta^T X_i}} 
 In the above, $Y_i$ is the response category, $j$ is some possible level of $Y_i$, $\alpha_j$, is a constant associated with level $j$, $\beta$ is a vector of coefficients shared across all levels, and $X_i$ is the vector of predictors for the $i^{th}$ observation. Note that unlike multinomial regression, in which one obtains $P(Y_i = j)$, we have an inequality instead. The phrase "proportional odds" comes from the assumption under the model that the odds ratio of $Y_i\leq j$ vs $Y_k\leq j$ is constant across the range of $j$.
 
 
-
 The reasonable use ordinal logstic regression relies on several assumptions:
 
 - Ordered categorical response variable
 - Proportional odds
 - Lack of multi-collinearity
-- predictor variables at least one of which is categorical, ordinal, or continuous
+- Predictors are either categorical, ordinal, or continuous
 
-The first and fourth of these requirements are evidently satisfied. The non-multi-collinearity requirement is addressed by performing a PCA analysis of the pcb_* predictors, which are heavily related and exhibit relatively high correlations. The proportional odds assumption may be tested via the Brant test for which we have obtained satisfactory results. We note that is a high degree of missingness for certain predictors, such as the "Score" variables. We use the MICE package in R to impute these missing data points. MICE generates multiple imputed datasets, as imputation is a random process, and then pools the regression results from these imputed data sets to provide one set of results. We note in our EDA the relatively high collinearity among the pcb_* predictors. In order to deal with this, we perform a principle components analysis (PCA) on these predictors in order to summarize the data as new predictors that are uncorrelated. We end up concluding that the first principle component is sufficient. As the weights in the first principle component are all of the same sign and of broadly similar magnitude, we could have perhaps simply taken the sum of the pcb_* predictors as an alternative methodology. We note that there is one observation with missing pcb_* data. We remove this observation as its impact is de minimis. Finally, a key goal of our efforts is to determine whether there is a residual dose reponse of DDE an PCB after accounting for other predictors, such as blood cholesterol/triglyceride levels, as well as various metrics capturing socioeconomic status and lifestyle.
+The first requirement is evidently satisfied by the natural ordering of preterm birth categories. Performing a Principal Component Analysis (PCA) of the PCB predictors, which exhibit relatively high correlations (\ref{fig:gpairs} (right)), to produce new uncorrelated variables, guarenteeing the multi-collinearity assumption. The proportional odds assumption may be tested via the Brant test for which we obtain satisfactory results. We note that "Score" variables have a high degree of missingness and use the MICE package in R to impute these missing data points. MICE generates multiple imputed datasets, as imputation is a random process, then pools the regression results from these imputed data sets to provide one set of results. We remove one observation with missing PCB data. We also include other potential confounders such as blood cholesterol/triglyceride levels, the center where these measurements were taken and metrics capturing socioeconomic status and lifestyle in the model. Finally, we perform model selection using F-tests.
 
 <!-- FROM SLIDE SHOW BELOW -->
 
@@ -329,8 +325,6 @@ The first and fourth of these requirements are evidently satisfied. The non-mult
 <!-- - Remove obs with missing PCE value -->
 <!-- - Include blood cholesterol/triglyceride levels, as well as center and SES/Lifestyle metrics -->
 
-
-
 <!-- ## Section 3: Results - describe the results of the analysis approaches described in Section 2. It -->
 <!-- may be useful to break this into subsections, such as: -->
 <!-- – 3.1 Exploratory Data Analysis -->
@@ -341,7 +335,13 @@ The first and fourth of these requirements are evidently satisfied. The non-mult
 
 ## Exploratory Data Analysis
 
+Many of the variables in the dataset exhibit a variety of issues such as measurement errors, zero-inflation, multi-collinearity and missingness. Gestational age potentially contain measurement errors since its values range from 27 to 90 (Figure \ref{fig:gesthist}). As the date of conception typically relies on the first day of the mother's last menstrual period, if the mother missed any menstrual cycles, the estimated gestational age could be more than 44 weeks, normally considered as the upper bound of a plausable late term gestation. We address this issue by keeping observations with 44 weeks or less in gestational age.
 
+We also see an inflation at zeros in the PCB variables due to the limitations of measurement equipment that round measurements below a certain threshold to zero. Consequently, we add half of the smallest value of PCB measurements to the zero and log-transform these variables. As seen in Figure \ref{fig:gpairs} (right), the PCB variables are highly correlated. We use PCA to create uncorrelated variables summarizing the variation in the PCB variables. Among the other covariates, only DDE and the first principal component of PCBs, triglycerides and cholesterol are mildly correlated (Figure \ref{fig:gpairs} left).
+
+Missigness is most significantly present in the variable albumin for which less than 10% of women had their levels recorded. Since albumin can be an indicator of liver disease, kidney disease, and possibly gestational diabetes, being tested for albumin can suggest the mother's health condition. Figure \ref{fig:albumin} shows that being tested for albumin seems to associate with slightly larger gestational age. 
+
+Bivariate plots of gestational age against each predictor show associations between premature birth and predictors such as race, centers, a quadratic function of maternal age, concentration of DDE and cholesterol (Figure \ref{fig:bivartrend}). 
 
 ```{r, clean-data}
 longnecker_base <- readRDS(file = "Longnecker.rds")
@@ -351,6 +351,7 @@ longnecker_base <- readRDS(file = "Longnecker.rds")
 # Dichotomize gestational age into 4 categories
 # Create indicator of albumin
 # Change center to categorical
+# Combine race black and race other
 gestational_age_cutoff <- 45
 longnecker <- longnecker_base %>%
   filter(gestational_age < gestational_age_cutoff) %>%
@@ -382,13 +383,24 @@ longnecker["log_tri"] <- log(longnecker$triglycerides)
 longnecker["log_chol"] <- log(longnecker$cholesterol)
 ```
 
-```{r, viz-collinear, message=FALSE}
+```{r gpairs, message=FALSE, fig.show="hold", out.width="50%", fig.cap="\\label{fig:gpairs}Correlations between predictors. First principal component of log(PCB) and log(DDE) are mildly negatively correlated (-0.3), and triglycerides and cholesterol are mildly positively correlated (0.3) (left). The PCB variables are all highly correlated (right)."}
 ggpairs(longnecker %>% dplyr::select(gestational_cat, log_dde, pcb_pca1, log_tri, cholesterol, maternal_age))
+longnecker %>%
+  dplyr::select(contains("pcb")) %>%
+  data.matrix() %>%
+  cor() %>%
+  round(1) %>%
+  reshape2::melt() %>%
+  ggplot(aes(x=Var1, y=Var2, fill=value)) + 
+  geom_tile() + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + xlab("") + ylab("")
 ```
 
-```{r, fig.show="hold", out.width="50%"}
-ggplot(longnecker, aes(x = gestational_age)) + geom_histogram(bins = 15)
-ggplot(longnecker, aes(x = gestational_cat)) + geom_bar()
+```{r gesthist, fig.cap="\\label{fig:gesthist}Distribution of gestational age ranges from 27 to 90 weeks"}
+ggplot(longnecker_base, aes(x = gestational_age)) + geom_histogram(bins = 50)
+```
+
+
+```{r bivartrend, fig.show="hold", out.width="50%", fig.cap="\\label{fig:bivartrend}Bivariate plots of gestational age against predictorss"}
 ggplot(longnecker, aes(fill = race, x = gestational_cat)) + geom_bar()
 ggplot(longnecker, aes(x = dde)) + geom_histogram()
 longnecker %>%
@@ -602,6 +614,7 @@ Long %>%
 
 A key advantage of this approach is that its interpretation is naturally suited to the problem at hand. Our goal is to assess risks of pre-term delivery resulting from differing blood levels of certain chemicals, namely dde and pcb_*'s, while also differentiating among varying levels of severity of such pre-term births. An ordinal logistic regression model provides probability of response accross various, categories of gestational delivery age, taking into account different severities, while also incorporating the natural ordinality of the different gestational categories. One disadvantage of this model is a relatively stringent structural assumption, namely that of proportional odds. This is a relatively difficult requirement to proof conclusively, though the Brant test, which we have employed, is able to provide support for the assumption. Another disadvantage is the necessity of choosing particular cut points to represent our gestational categories. In one sense, the existence of certain natural cut points in fetal development, as provided by various reputable organizations as WHO, may make this type of categorization seem sensible. On the other hand, categorizing continuous data will always possess a degree of arbitrarity, and it may risk masking different dynamics contained within categories or across categories. An alternative modeling framework which may have been of use is quantile regression. Quantile regression, which remarkably few assumptions, provides an estimation of a given quantile of the response variable as a linear function of predictor variables. One can then fit this model across a range of quantiles to obtain a sense of how the overall distribution of the response changes over the predictor space. This could allow one to identify that, hypothetically, the 20th or 10th quantile of gestational age tends to decrease with increasing DDE concentration, even if the median or higher quantiles are little affected, allowing one to assess the presence of increasing downside risk in the form of longer tails. This also seems promising as a means of answering the question of interest. This method can easily handle to non-normality of our response variable, and it also provides a sense changing likelihood of pre-term births while also differentiating among different levels of severity. It does strike us, however, that there may be some increased difficulty in interpretability, as the true question of interest seems closer to assessing the likelihood of gestational age falling below a given level, as opposed to estimating a given quantile of gestational age. 
 
+We end up concluding that the first principle component is sufficient. As the weights in the first principle component are all of the same sign and of broadly similar magnitude, we could have perhaps simply taken the sum of the pcb_* predictors as an alternative methodology.
 
 <!-- # Appendix - contains any necessary technical and other material that would be good to include but may make the main part difficult to read, particularly for a non-specialist/scientist. Sections 1-4 should be as accessible as possible to a non-statistician scientist/researcher in the relevant area & should be written in a clear/concise manner. -->
 
