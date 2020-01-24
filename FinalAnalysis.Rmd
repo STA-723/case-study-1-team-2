@@ -530,7 +530,7 @@ knitr::kable(resp, caption = "Multiplier of odds ratio for 10 percent increase i
 These estimates suggests evidence for an association between exposure to DDE and PCBs and an increase in risk of premature birth. We can interprete these coefficents as follows:
 
 - For 10% increase in DDE exposure, the odds of having more normal gestational age decreases by `r round(100 - 100 * exp(.1*inter_table[1,1]),1)`%.
-- For 10% increase in the first principal components of PCBs, the odds of having more normal gestational age decreases by `r round(100 - 100 * exp(.1*inter_table[2,1]),1)`%. See \@ref(fig:Results) below for a pictoral representation of fitted dose response probabilities across gestational term severities. 
+- For 10% increase in the first principal components of PCBs, the odds of having more normal gestational age decreases by `r round(100 - 100 * exp(.1*inter_table[2,1]),1)`%. See Figure \@ref(fig:Results) below for a pictoral representation of fitted dose response probabilities across gestational term severities. 
 
 <!-- https://stats.idre.ucla.edu/r/dae/ordinal-logistic-regression/ -->
 <!-- https://stats.idre.ucla.edu/other/mult-pkg/faq/general/faqhow-do-i-interpret-a-regression-model-when-some-variables-are-log-transformed/ -->
